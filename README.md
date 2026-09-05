@@ -185,7 +185,7 @@ Migration: `app.database.Base.metadata.create_all(bind=engine)` (Alembic scaffol
 ## Development
 
 ```bash
-# backend — 44 tests (auth, feedback, search, GEE fallback, phases 2-9...)
+# backend — 46 tests (auth, feedback, search, rate-limit, GEE fallback, phases 2-9...)
 $env:PYTHONPATH="backend"; $env:APP_ENV="test"; python -m pytest backend/tests -q
 
 # frontend — 27 vitest (api client, scope store, i18n) + build

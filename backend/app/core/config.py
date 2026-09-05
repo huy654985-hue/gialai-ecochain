@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_days: int = Field(default=7, alias="REFRESH_TOKEN_EXPIRE_DAYS")
 
+    # Rate limiting
+    rate_limit_per_minute: int = Field(default=60, alias="RATE_LIMIT_PER_MINUTE")
+    redis_url: Optional[str] = Field(default=None, alias="REDIS_URL")
+
     # GEE — env-based, no hard-coded secrets
     gee_project_id: Optional[str] = Field(default=None, alias="GEE_PROJECT_ID")
     gee_service_account: Optional[str] = Field(default=None, alias="GEE_SERVICE_ACCOUNT")

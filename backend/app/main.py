@@ -1,7 +1,6 @@
 """ECOGL 1.0 — Phase 5 Production (Fail-safe, Observability, Security)."""
 import logging, time
 from contextlib import asynccontextmanager
-from collections import defaultdict
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -64,6 +63,9 @@ def create_app() -> FastAPI:
         "https://frontend-dan1775.vercel.app",
         "http://localhost:5173",
         "http://localhost:3000",
+        "http://localhost:4173",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:4173",
     ]
     extra = [o.strip() for o in (_os.getenv("CORS_EXTRA_ORIGINS") or "").split(",") if o.strip()]
     app.add_middleware(
@@ -74,24 +76,20 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
     )
-    # Sec51 rate limiting + Sec52 fraud flags + Sec53 security headers
-    _counts=defaultdict(list)
+    # Sec51 rate limiting (Redis when REDIS_URL set, memory fallback) + Sec53 headers
+    from app.core.rate_limit import RateLimiter
+
+    _limiter = RateLimiter(limit=s.rate_limit_per_minute, window=60, redis_url=s.redis_url)
+
     @app.middleware("http")
     async def rate_limit_mw(request: Request, call_next):
         # Sec51: reports/confirmations/uploads/api/ai/gee/route per user
-        path=request.url.path
-        key=request.client.host if request.client else "anon"
-        # simple per-min limit 60
-        now=time.time()
-        bucket=_counts[key]
-        # prune 60s
-        _counts[key]=[t for t in bucket if now-t<60]
-        if len(_counts[key])>60:
-            return JSONResponse(status_code=429, content={"detail":"Rate limit exceeded (Sec51)"})
-        _counts[key].append(now)
+        key = request.client.host if request.client else "anon"
+        if not await _limiter.allow(key):
+            return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded (Sec51)"})
         # Sec53 security: audit + input validation note
-        resp=await call_next(request)
-        resp.headers["X-Content-Type-Options"]="nosniff"
+        resp = await call_next(request)
+        resp.headers["X-Content-Type-Options"] = "nosniff"
         return resp
 
     from app.api.routes.health import router as health_router
