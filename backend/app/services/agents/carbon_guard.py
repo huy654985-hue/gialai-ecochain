@@ -25,12 +25,15 @@ class CarbonGuardAgent:
     model_version=MODEL_VERSION
     def analyze(self, administrative_unit_id:str, forest_area_ha:float|None=None, ndvi:float|None=None, ndvi_change:float|None=None, carbon_model:CarbonModel|None=None)->Dict[str,Any]:
         cm=carbon_model or CarbonModel()
+        estimated = [k for k, v in (("forest_area_ha", forest_area_ha), ("ndvi", ndvi), ("ndvi_change", ndvi_change)) if v is None]
         area=forest_area_ha or _seeded(administrative_unit_id,"area").uniform(500,5000)
         ndv= ndvi if ndvi is not None else _seeded(administrative_unit_id,"ndvi").uniform(0.4,0.8)
         est=cm.estimate(area, ndv)
         change_pct= round((ndvi_change or _seeded(administrative_unit_id,"chg").uniform(-0.1,0.05))/0.6*100,2) if ndvi_change is not None else round(_seeded(administrative_unit_id,"chg2").uniform(-5,2),2)
         conf= int(60 + abs(change_pct)*2)
         conf=min(90,max(50,conf))
+        if estimated:
+            conf = min(conf, 65)  # estimated inputs cap confidence
         return {
             "agent":"CarbonGuard","administrative_unit_id":administrative_unit_id,
             "estimated_carbon_stock_t": est["carbon_stock_t"],
@@ -38,6 +41,7 @@ class CarbonGuardAgent:
             "potential_carbon_change_pct": change_pct,
             "carbon_estimate": est["carbon_stock_t"],
             "confidence": conf,
+            "estimated_inputs": estimated,
             "model_version": MODEL_VERSION,
             "data_sources":["satellite","vegetation"],
             "explanation": f"Estimated carbon stock {est['carbon_stock_t']:.1f}t; Potential carbon change {change_pct:+.1f}% — Carbon Monitoring Signal, not credit certification.",

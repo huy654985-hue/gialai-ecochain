@@ -90,17 +90,32 @@ def heat_risk(administrative_unit_id:str, geometry:Dict|None, inputs:Dict[str,An
 
 HANDLERS={"FIRE":fire_risk,"FLOOD":flood_risk,"LANDSLIDE":landslide_risk,"DROUGHT":drought_risk,"HEAT":heat_risk}
 
+# core physical inputs each handler actually reads (optional context like
+# historical_* is meaningful when absent, so it is not listed as estimated)
+HANDLER_INPUTS={
+    "FIRE": ["ndvi_change","temperature","rainfall"],
+    "FLOOD": ["rainfall","elevation"],
+    "LANDSLIDE": ["slope","rainfall"],
+    "DROUGHT": ["ndvi","rainfall"],
+    "HEAT": ["temperature"],
+}
+
 class DisasterGuardAgent:
     model_version=MODEL_VERSION
     def analyze(self, administrative_unit_id:str, risk_type:str, geometry:Dict|None=None, inputs:Dict[str,Any]|None=None)->Dict[str,Any]:
         rt=risk_type.upper()
         h=HANDLERS.get(rt)
+        provided = set((inputs or {}).keys())
         if not h:
             # generic
             rng=_seeded(administrative_unit_id,rt, str(inputs))
             score=rng.randint(10,70)
-            return {"risk_type":rt,"score":score,"confidence":60,"level":_level(score).value,"explanation":"Generic risk","inputs":inputs or {},"model_version":MODEL_VERSION,"source":"DisasterGuard"}
-        return h(administrative_unit_id, geometry, inputs or {})
+            return {"risk_type":rt,"score":score,"confidence":60,"level":_level(score).value,"explanation":"Generic risk","inputs":inputs or {},"estimated_inputs":["all"],"model_version":MODEL_VERSION,"source":"DisasterGuard"}
+        out = h(administrative_unit_id, geometry, inputs or {})
+        # keys the handler filled from seeded fallback instead of real inputs
+        relevant = HANDLER_INPUTS.get(rt, list((inputs or {}).keys()) or ["all"])
+        out["estimated_inputs"] = [k for k in relevant if k not in provided]
+        return out
     def analyze_all(self, administrative_unit_id:str, geometry:Dict|None=None, inputs:Dict[str,Any]|None=None)->List[Dict[str,Any]]:
         return [self.analyze(administrative_unit_id, t, geometry, inputs) for t in ["FIRE","FLOOD","LANDSLIDE","DROUGHT","HEAT","STORM"]]
     def data_fusion(self, signals:List[Dict[str,Any]], community_verified:bool=False)->Dict[str,Any]:

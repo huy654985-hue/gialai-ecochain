@@ -47,7 +47,7 @@ async def fire_risk(administrative_unit_id: str = Query(...), lat: float = Query
                 # just check availability
                 sat["s1"]=True
             except: pass
-    except: sat={"ndvi": 0.5}
+    except: sat={}  # mark satellite missing — analyze() flags it, never fake ndvi
     # weather real
     weather={}
     try:
@@ -71,8 +71,8 @@ async def fire_risk(administrative_unit_id: str = Query(...), lat: float = Query
         f=await fetch_firms(lat, lon)
         hotspots=f.get("fires",[])[:3]
     except: hotspots=[]
-    # community reports count
-    community=2
+    # community reports count (0 = unknown; only real confirmations raise confidence)
+    community=0
     result=fire_risk_engine.analyze(administrative_unit_id, satellite=sat, weather=weather, terrain=terrain, hotspots=hotspots, community=community)
     # best-effort persistence: serverless FS may be read-only → never 500 the read path
     official = None

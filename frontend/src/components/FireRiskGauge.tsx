@@ -27,6 +27,7 @@ export default function FireRiskGauge({ compact=false, onSelect }: { compact?:bo
   const [score, setScore] = useState<number | null>(null)
   const [conf, setConf] = useState<number | null>(null)
   const [factors, setFactors] = useState<string[]>([])
+  const [missing, setMissing] = useState<string[]>([])
   const [inputs, setInputs] = useState<string>('')
   const [status, setStatus] = useState<string>('—')
   const [manual, setManual] = useState(false)
@@ -54,6 +55,7 @@ export default function FireRiskGauge({ compact=false, onSelect }: { compact?:bo
       if(j.warning_level){ setLevel(j.warning_level); setManual(false) }
       setScore(j.risk_score ?? null); setConf(j.confidence ?? null)
       setFactors(Object.keys(j.factors || {}))
+      setMissing(Array.isArray(j.missing) ? j.missing : [])
       const ev = j.evidence || {}
       setInputs(`NDVI ${ev.satellite?.ndvi ?? '?'} · ${ev.weather?.temperature ?? '?'}°C · FIRMS ${Array.isArray(ev.hotspots) ? ev.hotspots.length : (ev.hotspots ?? 0)} điểm`)
       setStatus(j.status || 'LIVE')
@@ -106,6 +108,7 @@ export default function FireRiskGauge({ compact=false, onSelect }: { compact?:bo
           {score !== null && <span>Risk <b>{score}/100</b></span>}
           {conf !== null && <span>Tin cậy <b>{conf}%</b></span>}
           {factors.length > 0 && <span className="truncate">· {factors.join(', ')}</span>}
+          {missing.length > 0 && <span title="Nguồn thiếu — tin cậy đã hạ tương ứng">· thiếu: {missing.join(', ')}</span>}
         </div>
       )}
 

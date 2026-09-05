@@ -7,10 +7,11 @@ from app.models.fire import OfficialFireWarning, AIFirePrediction
 from app.core.enums import FireWarningLevel, FIRE_WARNING_LABELS
 
 def score_to_level(score:int)->FireWarningLevel:
-    if score<=19: return FireWarningLevel.I
-    if score<=39: return FireWarningLevel.II
-    if score<=59: return FireWarningLevel.III
-    if score<=79: return FireWarningLevel.IV
+    # unified scale with RiskLevel (20/40/60/80) — see fire_risk_config.THRESHOLDS
+    if score<=20: return FireWarningLevel.I
+    if score<=40: return FireWarningLevel.II
+    if score<=60: return FireWarningLevel.III
+    if score<=80: return FireWarningLevel.IV
     return FireWarningLevel.V
 
 def _seed(uid:str, extra:str="")->random.Random:
@@ -24,9 +25,23 @@ class FireRiskEngine:
         weather=weather or {}
         terrain=terrain or {}
         hotspots=hotspots or []
-        ndvi=satellite.get("ndvi", 0.6); ndmi=satellite.get("ndmi", 0.3); nbr=satellite.get("nbr", 0.2)
-        temp=weather.get("temperature", 30); humidity=weather.get("humidity", 60); rainfall=weather.get("rainfall", 5); wind=weather.get("wind_speed", 10)
-        slope=terrain.get("slope", 10); elevation=terrain.get("elevation", 300)
+        # Provenance: only keys actually present count as real data.
+        # Defaults below are neutral computation stand-ins — they must NOT
+        # inflate confidence (previous bug: confidence ~86% with zero inputs).
+        has_sat = satellite.get("ndvi") is not None
+        has_wx = weather.get("temperature") is not None
+        has_terr = terrain.get("slope") is not None
+        has_firms = bool(hotspots)
+        has_comm = community > 0
+        missing = [k for k, ok in (("satellite", has_sat), ("weather", has_wx),
+                                   ("terrain", has_terr), ("firms", has_firms),
+                                   ("community", has_comm)) if not ok]
+        ndvi=satellite.get("ndvi", 0.6) if has_sat else 0.6
+        ndmi=satellite.get("ndmi", 0.3); nbr=satellite.get("nbr", 0.2)
+        temp=weather.get("temperature", 30) if has_wx else 30
+        humidity=weather.get("humidity", 60); rainfall=weather.get("rainfall", 5); wind=weather.get("wind_speed", 10)
+        slope=terrain.get("slope", 10) if has_terr else 10
+        elevation=terrain.get("elevation", 300)
         # Sec20 weighted scoring — not hard-coded NBR alone
         # Fuel dryness (NDVI/NDMI) 30%, Weather 20%, FIRMS 15%, Wind 10%, Rainfall 10%, Terrain 10%, Historical/community 5%
         fuel_score = max(0, min(100, (0.7-ndvi)*120 + (0.4-ndmi)*80))
@@ -51,24 +66,19 @@ class FireRiskEngine:
         dry = (0.7 - ndvi)*50 + (0.4 - ndmi)*30
         base=min(100, max(5, int(base + _seed(administrative_unit_id,"base").uniform(-3,3))))
         level=score_to_level(base)
-        # confidence data-aware Sec28
-        data_available = sum([1 for x in [satellite.get("ndvi") is not None, weather.get("temperature") is not None, bool(hotspots), terrain.get("slope") is not None] if x]) + (1 if community else 0)
-        # if missing satellite/weather reduce confidence
-        base_conf= 70 + data_available*6 + (10 if hotspots else 0)
-        # adjust for missing FIRMS
-        if not hotspots: base_conf -= 8
-        confidence=max(45, min(97, base_conf + _seed(administrative_unit_id,"conf").randint(-3,3)))
+        # confidence data-aware Sec28 — driven by REAL inputs only
+        n_real = sum([has_sat, has_wx, has_firms, has_terr, has_comm])
+        base_conf = 35 + n_real * 12 + (5 if has_firms else 0)
+        confidence = max(30, min(97, base_conf + _seed(administrative_unit_id, "conf").randint(-3, 3)))
         # label
         label=FIRE_WARNING_LABELS[level]
-        has_data = satellite.get("ndvi") is not None
         return {
             "risk_score": base, "warning_level": level.value, "label": label,
             "eco_level": f"EcoGL AI Fire Risk Level {level.value}", # Sec10 internal, not official
-            "confidence": confidence, "factors": factors,
+            "confidence": confidence, "factors": factors, "missing": missing,
             "elevation": elevation, "slope": slope,
             "vegetation_dryness": int(max(0,min(100, 50 + dry))), "fuel_condition": "HIGH" if dry>15 else "MODERATE",
             "model_version":"v1.0", "data_sources": ["Sentinel-2","Sentinel-1","FIRMS","Weather","Terrain"],
-            "missing": [] if has_data else ["satellite"]
         }
 
     def forecast(self, administrative_unit_id:str, satellite:Dict, weather_forecast:Dict)->Dict[str,Any]:

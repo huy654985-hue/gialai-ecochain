@@ -9,4 +9,4 @@ WEIGHTS = {
     "historical_community": 0.05,
 }
 # maps to: Fuel dryness 30%, Weather 20%, FIRMS 15%, Wind 10%, Rainfall deficit 10%, Terrain 10%, Historical 5%
-THRESHOLDS = [(19, "I"), (39, "II"), (59, "III"), (79, "IV"), (100, "V")]
+THRESHOLDS = [(20, "I"), (40, "II"), (60, "III"), (80, "IV"), (100, "V")]
