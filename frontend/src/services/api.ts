@@ -38,6 +38,7 @@ export const api = {
   simulatePlan: (id:string)=> req(`/api/plans/${id}/simulate`, { method:'POST', body: JSON.stringify({}) }),
   recommendPlan: (id:string)=> req(`/api/plans/${id}/recommend`, { method:'POST', body: JSON.stringify({}) }),
   sendFeedback: (body:Record<string, unknown>)=> req('/api/feedback', { method:'POST', body: JSON.stringify(body) }),
+  learning: ()=> req('/api/learning').catch(()=> []),
   forestHealth: ()=> Promise.resolve({ healthy:78.4, trend:2.8 }),
   geeStatus: ()=> req('/api/earth-engine/status').catch(()=> ({ connected:false, reason:'NOT_CONNECTED' })),
   incidents: ()=> req('/api/incidents').catch(()=>[]),

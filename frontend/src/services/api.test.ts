@@ -111,6 +111,13 @@ describe('api client', () => {
     mockFetch(true, { id: 7, status: 'OPEN' })
     await expect(api.sendFeedback({ category: 'bug', message: 'Nút X không bấm được' })).resolves.toEqual({ id: 7, status: 'OPEN' })
   })
+
+  it('learning passes through lesson records, [] when down', async () => {
+    mockFetch(true, [{ prediction: 'High Fire Risk', prediction_correct: false }])
+    await expect(api.learning()).resolves.toEqual([{ prediction: 'High Fire Risk', prediction_correct: false }])
+    mockFetch(false, {}, 500)
+    await expect(api.learning()).resolves.toEqual([])
+  })
   it('uploadProposalPhoto sends multipart and returns hash info', async () => {
     const { uploadProposalPhoto } = await import('./api')
     mockFetch(true, { photo_id: 1, is_duplicate: false, hash: 'abc' })

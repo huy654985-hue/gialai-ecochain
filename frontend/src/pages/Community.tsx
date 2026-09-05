@@ -47,8 +47,7 @@ const FIELD_PHOTOS = [
   { src: 'field/forest-fire-2-hisgett.jpg', caption: 'Lính cứu hỏa dập lửa (minh họa)', credit: 'Tony Hisgett · CC BY 2.0', url: 'https://commons.wikimedia.org/wiki/File:Forest_Fire_2_(8066648136).jpg' },
 ]
 
-function Gallery(){
-  const [open, setOpen] = useState<string | null>(null)
+function Gallery(){  const [open, setOpen] = useState<string | null>(null)
   return (
     <div className="card">
       <b>📷 Ảnh hiện trường tham khảo</b>
@@ -71,6 +70,64 @@ function Gallery(){
         </div>
       )}
       <style>{`@media (max-width: 640px){ .photo-grid{ grid-template-columns:repeat(2, 1fr) !important; } }`}</style>
+    </div>
+  )
+}
+
+function Lessons(){
+  const [rows, setRows] = useState<any[]>([])
+  useEffect(()=>{
+    api.learning().then((d: any)=> setRows(Array.isArray(d) ? d.slice(0, 5) : [])).catch(()=> setRows([]))
+  },[])
+  if(rows.length === 0) return null
+  return (
+    <div className="card">
+      <b>📚 Bài học từ thực tế</b>
+      <div style={{fontSize:11, color:'#64748B', margin:'2px 0 8px'}}>AI dự đoán → thực địa kiểm chứng → ghi nhận để lần sau chính xác hơn</div>
+      {rows.map((l: any, i: number)=> (
+        <div key={i} style={{fontSize:13, border:'1px solid #F1F5F9', borderRadius:10, padding:'8px 10px', marginTop:6}}>
+          <div>🔮 Dự đoán: {l.prediction || '—'}</div>
+          <div>✅ Thực tế: {l.outcome || '—'}</div>
+          <span style={{fontSize:11, padding:'2px 8px', borderRadius:999, background: l.prediction_correct ? '#DCFCE7' : '#FEE2E2', fontWeight:700}}>
+            {l.prediction_correct ? 'AI ĐÚNG' : 'AI SAI — đã học'}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SuggestedMissions(){
+  const [items, setItems] = useState<any[]>([])
+  const [made, setMade] = useState<Record<string, string>>({})
+  useEffect(()=>{
+    api.alertList('ACTIVE').then((d: any)=>{
+      const rows = (Array.isArray(d) ? d : []).slice(0, 3)
+      setItems(rows)
+    }).catch(()=> setItems([]))
+  },[])
+  const create = async (a: any)=>{
+    try{
+      const r: any = await api.createMission({
+        goal: `Xác minh ${a.title || 'điểm nguy cơ'} tại ${a.administrative_unit_id || ''}`.trim(),
+        scope: a.administrative_unit_id || 'Province',
+      })
+      setMade(m => ({ ...m, [a.id]: r.mission_id || 'đã tạo' }))
+    }catch{}
+  }
+  if(items.length === 0) return null
+  return (
+    <div className="card">
+      <b>🤖 Nhiệm vụ AI đề xuất</b>
+      <div style={{fontSize:11, color:'#64748B', margin:'2px 0 8px'}}>Sinh từ cảnh báo đang hoạt động — bấm để tạo nhiệm vụ thật</div>
+      {items.map((a: any)=> (
+        <div key={a.id} style={{display:'flex', gap:8, alignItems:'center', fontSize:13, border:'1px solid #F1F5F9', borderRadius:10, padding:'8px 10px', marginTop:6}}>
+          <div style={{flex:1}}><b>{a.title || a.risk_type}</b> · {a.administrative_unit_id} · mức {a.level}</div>
+          {made[a.id]
+            ? <a href="/missions" style={{fontSize:12, color:'#0F766E', fontWeight:700}}>Đã tạo ✓ xem</a>
+            : <button onClick={()=> create(a)} style={{fontSize:12, background:'#0F766E', color:'#fff', border:0, borderRadius:999, padding:'6px 12px'}}>Tạo nhiệm vụ</button>}
+        </div>
+      ))}
     </div>
   )
 }
@@ -231,6 +288,8 @@ export default function Community(){
       })}
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={e=> { if(uploadFor) onFile(uploadFor, e.target.files?.[0]); e.target.value = '' }} />
       <Gallery />
+      <Lessons />
+      <SuggestedMissions />
       <style>{`.card{background:#fff; border:1px solid #E2E8E5; border-radius:16px; padding:16px}`}</style>
     </div>
   )
