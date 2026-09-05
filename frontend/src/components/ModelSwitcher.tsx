@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react'
 const API = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'
 
-// Token lives in sessionStorage (cleared when the tab closes), never localStorage.
+// where each agent's output is actually surfaced (honest mapping)
+const POWERS: Record<string, { map?: string; pages: [string, string][] }> = {
+  ForestGuard: { map: 'popup NDVI + vùng rừng trên Bản đồ', pages: [['/forest', 'Forest'], ['/map', 'Bản đồ']] },
+  FireRisk: { map: 'CẤP cháy popup xã + trạm quan trắc', pages: [['/disaster', 'Disaster'], ['/map', 'Bản đồ']] },
+  DisasterGuard: { pages: [['/disaster', 'Disaster (đa thiên tai)']] },
+  CarbonGuard: { pages: [['/carbon', 'Carbon']] },
+  EUDRGuard: { pages: [['/eudr', 'EUDR']] },
+}
+// admin token lives in sessionStorage (cleared when the tab closes), never localStorage.
 const token = ()=> sessionStorage.getItem('ecogl_admin_token') || ''
 const authHeaders = (): Record<string, string> => token() ? { Authorization: `Bearer ${token()}` } : {}
 
@@ -90,7 +98,11 @@ export default function ModelSwitcher(){
       <div style={{marginTop:12, display:'grid', gap:8}}>
         {models.map(m=>(
           <div key={m.agent} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 10px', border:'1px solid #E2E8E5', borderRadius:10, background:'#F8FAF9', gap:8, flexWrap:'wrap'}}>
-            <span style={{fontSize:13, fontWeight:600}}>{m.agent}</span>
+            <span style={{fontSize:13, fontWeight:600}}>{m.agent}
+              <span style={{display:'block', fontWeight:400, fontSize:11, color:'#64748B'}}>
+                Chạy ở: {POWERS[m.agent]?.map ? `🗺 ${POWERS[m.agent].map} · ` : ''}{POWERS[m.agent]?.pages.map(([to, label], i)=> <a key={to} href={to} style={{color:'#0F766E'}}>{i > 0 ? ' · ' : ''}{label}</a>)}
+              </span>
+            </span>
             {isAdmin ? (
               <select value={m.active} onChange={e=> doSwitch(m.agent, e.target.value)} aria-label={`Phiên bản ${m.agent}`} style={{fontSize:12, padding:'4px 8px', borderRadius:999, border:'1px solid #E2E8E5'}}>
                 {m.available.map((v: string)=> <option key={v} value={v}>{v}{v === m.active ? ' ✓' : ''}</option>)}
