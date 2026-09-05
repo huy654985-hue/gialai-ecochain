@@ -43,7 +43,7 @@ def automation_status():
         db.close()
 
 @router.get("/health/geospatial")
-def health_geospatial():
+async def health_geospatial():
     import time
     s=get_settings()
     gee_cfg=gee_auth.check_configuration()
@@ -60,11 +60,12 @@ def health_geospatial():
             return "LIVE" if st.value=="CONNECTED" else "UNAVAILABLE"
         except:
             return "UNAVAILABLE"
+    from app.services.sentinel_service import get_token_status
+    sentinel_token = await get_token_status()
+
     def _sentinel_status():
-        if not s.sentinelhub_configured:
-            return "DEMO" if s.is_demo else "CONFIGURATION_REQUIRED"
-        # Sentinel Hub configured -> LIVE (token check lazy)
-        return "LIVE"
+        # real check (not just "key present"): token fetch, cached 50 min
+        return sentinel_token.get("status", "DEMO" if s.is_demo else "CONFIGURATION_REQUIRED")
     def _firms_status():
         if not s.effective_firms_key:
             return "DEMO" if s.is_demo else "CONFIGURATION_REQUIRED"
@@ -87,7 +88,7 @@ def health_geospatial():
         "sentinel_hub": {"configured": bool(s.sentinelhub_configured), "status": sentinel_st, "provider": "Sentinel Hub", "auth_url": "https://services.sentinel-hub.com/oauth/token", "bbox": "107.0,12.9,109.6,15.0", "last_success": now if sentinel_st=="LIVE" else None, "cache_status": "LIVE" if sentinel_st=="LIVE" else None},
         "landsat8": {"configured": bool(s.gee_configured), "status": gee_st, "dataset":"LANDSAT/LC08/C02/T1_L2"},
         "landsat9": {"configured": bool(s.gee_configured), "status": gee_st, "dataset":"LANDSAT/LC09/C02/T1_L2"},
-        "firms": {"configured": bool(s.effective_firms_key), "status": firms_st, "satellites": ["MODIS","VIIRS","NOAA-20","NOAA-21"], "bbox": "107.0,12.9,109.6,15.0", "last_success": now if firms_st=="LIVE" else None, "cache_status": "LIVE" if firms_st=="LIVE" else ("DEMO" if firms_st=="DEMO" else None), "api_url": f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{s.effective_firms_key or 'MAP_KEY'}/VIIRS_SNPP_NRT/107.0,12.9,109.6,15.0/1" if s.effective_firms_key else None, "endpoint": "/api/v1/hotspots/live"},
+        "firms": {"configured": bool(s.effective_firms_key), "status": firms_st, "satellites": ["MODIS","VIIRS","NOAA-20","NOAA-21"], "bbox": "107.0,12.9,109.6,15.0", "last_success": now if firms_st=="LIVE" else None, "cache_status": "LIVE" if firms_st=="LIVE" else ("DEMO" if firms_st=="DEMO" else None), "endpoint": "/api/v1/hotspots/live"},
         "llm": {"configured": bool(s.llm_configured), "status": llm_st, "providers": ["Gemini","Groq"], "model": "gemini-2.5-flash / llama-3.1-70b", "capability": "PCCC scenario generation", "last_success": now if llm_st=="LIVE" else None, "cache_status": "LIVE" if llm_st=="LIVE" else ("DEMO" if llm_st=="DEMO" else None)},
         "weather": {"status": "LIVE", "provider":"Open-Meteo", "last_success": now, "cache_status":"LIVE", "source": "Open-Meteo", "acquired_at": now},
         "nasa_power": {"status": "LIVE", "provider":"NASA POWER", "last_success": now, "source": "NASA POWER"},
