@@ -54,7 +54,37 @@ export default function WhatIfLab(){
 
   useEffect(()=>{
     fetch(`${(import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'}/api/risk/overview`)
-      .then(r=>r.json()).then(j=> setBaseline(j)).catch(()=> setBaseline({ overall:42 }))
+      .then(r=>r.json()).then(j=> setBaseline(j)).catch(()=> setBaseline({ overall:42 }));
+    // reload persisted scenarios (WhatIfEngine) so refresh doesn't lose work
+    (async ()=>{
+      try{
+        const list: any = await api.scenariosList()
+        const last = (Array.isArray(list) ? list : []).slice(-3)
+        const hydrated: SavedSim[] = []
+        for(const s of last){
+          try{
+            const [full, card]: any[] = await Promise.all([
+              api.scenarioGet(s.id).catch(()=> ({})),
+              api.scenarioScorecard(s.id).catch(()=> ({})),
+            ])
+            const sc = { ...card, ...(full.score || {}) }
+            hydrated.push({
+              id: s.id, scenario: full.name || s.name || s.type || 'Scenario',
+              params: full.params || {},
+              affected: { villages: 0, roads: 0, farms: 0 },
+              scores: {
+                risk: sc.risk ?? 50, cost: sc.cost ?? 50, co2: sc.co2 ?? 50,
+                forest: sc.forest ?? 50, logistics: sc.logistics ?? 50, resilience: sc.resilience ?? 50,
+              },
+            })
+          }catch{}
+        }
+        if(hydrated.length){
+          setSlots(hydrated)
+          setServerCompare(await api.scenariosCompare(hydrated.map(x=> x.id)).catch(()=> null))
+        }
+      }catch{}
+    })()
   },[])
 
   const params = { rainfall_pct: rain, heat_c: heat, forest_loss_ha: forestLoss, road_closure_h: roadHours }
@@ -168,7 +198,7 @@ export default function WhatIfLab(){
             {slots.map((s, i)=> (
               <div key={s.id} style={{border:'1px solid #E2E8E5', borderRadius:12, padding:10, fontSize:12, lineHeight:1.7}}>
                 <b>Slot {String.fromCharCode(65+i)} · {s.scenario}</b> <span style={{color:'#64748B'}}>id {String(s.id).slice(0,8)}</span><br/>
-                Mưa +{s.params.rainfall_pct}% · +{s.params.heat_c}°C · {s.params.forest_loss_ha} ha · {s.params.road_closure_h}h<br/>
+                {s.params.rainfall_pct !== undefined ? <>Mưa +{s.params.rainfall_pct}% · +{s.params.heat_c}°C · {s.params.forest_loss_ha} ha · {s.params.road_closure_h}h<br/></> : <>Kịch bản đã lưu trong DB<br/></>}
                 🏘 {s.affected.villages} làng · 🛣 {s.affected.roads} đường · 🚜 {s.affected.farms} trại<br/>
                 Risk {s.scores.risk} · CO₂ {s.scores.co2} · Rừng {s.scores.forest} · Chống chịu {s.scores.resilience}<br/>
                 <button onClick={()=> showCascade(s)} style={{fontSize:11, marginTop:4, background:'#EFF6FF', border:'1px solid #BFDBFE', borderRadius:999, padding:'2px 8px'}}>⛓ Cascade {cascadeFor === s.id ? '▴' : '▾'}</button>{' '}

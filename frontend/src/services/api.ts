@@ -17,6 +17,7 @@ export const api = {
   simResponse: (intervention:string)=> req('/api/simulate/response', { method:'POST', body: JSON.stringify({ intervention }) }),
   simCompare: (scenarios:unknown[])=> req('/api/simulate/scenario-comparison', { method:'POST', body: JSON.stringify({ scenarios }) }),
   scenarioCreate: (name:string, type:string, params:Record<string, unknown>)=> req('/api/scenarios', { method:'POST', body: JSON.stringify({ name, type, params }) }),
+  scenarioGet: (id:string)=> req(`/api/scenarios/${id}`),
   scenarioScorecard: (id:string)=> req(`/api/scenarios/${id}/scorecard`),
   scenariosCompare: (ids:string[])=> req('/api/scenarios/compare', { method:'POST', body: JSON.stringify({ ids }) }),
   simCascade: (scenario:string)=> req('/api/simulate/cascade', { method:'POST', body: JSON.stringify({ scenario }) }),

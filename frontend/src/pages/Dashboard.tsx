@@ -6,15 +6,32 @@ import { mockKPIs, mockAlerts } from '../services/mockProvider'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LineChart, Line, ResponsiveContainer } from 'recharts'
+import { api } from '../services/api'
 
 export default function Dashboard() {
   const [selected, setSelected] = useState<string|null>(null)
+  const [pending, setPending] = useState<string[]>([])
   const nav = useNavigate()
   useEffect(()=>{
     // real commune/station name clicked on the map (MapView dispatches this)
     const h = (e: any)=> setSelected(e.detail?.area || null)
     window.addEventListener('ecochain-select-area', h)
     return ()=> window.removeEventListener('ecochain-select-area', h)
+  },[])
+  useEffect(()=>{
+    // real pending work: PENDING approvals + ACTIVE alerts
+    const API = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'
+    Promise.all([
+      fetch(`${API}/api/approvals`).then(r=> r.ok ? r.json() : []).catch(()=> []),
+      api.alertList().catch(()=> []),
+    ]).then(([ap, al]: any[])=>{
+      const items: string[] = []
+      const pa = (Array.isArray(ap) ? ap : []).filter((a:any)=> a.status === 'PENDING').slice(0,2)
+      pa.forEach((a:any)=> items.push(`Duyệt ${a.action || 'hành động'} — kế hoạch ${String(a.plan_id || '').slice(0,8)}`))
+      const aa = (Array.isArray(al) ? al : []).filter((a:any)=> a.status === 'ACTIVE').slice(0, 3 - pa.length)
+      aa.forEach((a:any)=> items.push(`${a.title || 'Cảnh báo'} — ${a.administrative_unit_id || ''}`))
+      setPending(items)
+    }).catch(()=> {})
   },[])
   const askAI = (area: string)=>{
     window.dispatchEvent(new CustomEvent('ecochain-open-ai', { detail:{ query: `Phân tích nguy cơ cháy rừng tại ${area}, Gia Lai` } }))
@@ -81,9 +98,8 @@ export default function Dashboard() {
         <div className="chart-card">
           <div className="card-title">Việc chờ xử lý</div>
           <ul className="action-list">
-            <li>Xác minh sự cố #2026-0012 — Thôn 1</li>
-            <li>Nhiệm vụ thực địa — Xã A (CAO)</li>
-            <li>Rà soát EUDR — Lô GL-2026-00001</li>
+            {pending.length === 0 && <li>Không có việc tồn đọng 🎉</li>}
+            {pending.map((p, i)=> <li key={i}>{p}</li>)}
           </ul>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, MotionConfig } from 'framer-motion'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import AppShell from './components/AppShell'
+import ErrorBoundary from './components/ErrorBoundary'
 import { PageTransition } from './motion/primitives'
 import { LangProvider } from './i18n'
 const EcoMap = lazy(()=> import('./pages/EcoMap'))
@@ -216,9 +217,11 @@ export default function App(){
     <MotionConfig reducedMotion="user">
       <BrowserRouter>
         <LangProvider>
-          <AppShell>
-            <AnimatedRoutes />
-          </AppShell>
+          <ErrorBoundary>
+            <AppShell>
+              <AnimatedRoutes />
+            </AppShell>
+          </ErrorBoundary>
           <AIAssistant />
         </LangProvider>
       </BrowserRouter>

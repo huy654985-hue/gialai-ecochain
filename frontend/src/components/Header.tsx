@@ -9,6 +9,26 @@ export default function Header({ onMenu }: { onMenu: ()=>void }) {
   const [now, setNow] = useState(new Date())
   const [activeCount, setActiveCount] = useState(0)
   const nav = useNavigate()
+  const [q, setQ] = useState('')
+  const [hits, setHits] = useState<any[]>([])
+  const [open, setOpen] = useState(false)
+  useEffect(()=>{
+    if(q.trim().length < 2){ setHits([]); return }
+    const id = setTimeout(async ()=>{
+      try{
+        const API = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'
+        const r = await fetch(`${API}/api/search/global?q=${encodeURIComponent(q.trim())}`)
+        const j = await r.json()
+        setHits(Array.isArray(j.results) ? j.results.slice(0, 8) : [])
+        setOpen(true)
+      }catch{ setHits([]) }
+    }, 300)
+    return ()=> clearTimeout(id)
+  },[q])
+  const go = (h: any)=>{
+    setOpen(false); setQ(h.name || '')
+    window.dispatchEvent(new CustomEvent('ecochain-search', { detail: h }))
+  }
   const { lang, setLang, t } = useLang()
   useEffect(()=>{
     const id=setInterval(()=> setNow(new Date()), 1000)
@@ -28,9 +48,19 @@ export default function Header({ onMenu }: { onMenu: ()=>void }) {
         <span className="scope-badge">TRỰC TIẾP</span>
         <ModeSwitch />
       </div>
-      <div className="hdr-search" style={{flex:1, maxWidth:420, margin:'0 16px', display:'flex', alignItems:'center', background:'#F8FAF9', border:'1px solid #E2E8E5', borderRadius:999, padding:'6px 12px', gap:8}}>
+      <div className="hdr-search" style={{position:'relative', flex:1, maxWidth:420, margin:'0 16px', display:'flex', alignItems:'center', background:'#F8FAF9', border:'1px solid #E2E8E5', borderRadius:999, padding:'6px 12px', gap:8}}>
         <span style={{opacity:0.5}}>⌕</span>
-        <input placeholder={t('hdr.search')} style={{border:0, outline:'none', flex:1, fontSize:13, background:'transparent'}} onKeyDown={e=>{ if(e.key==='Enter') alert('Tìm: '+(e.target as HTMLInputElement).value)}} />
+        <input value={q} onChange={e=> setQ(e.target.value)} placeholder={t('hdr.search')} style={{border:0, outline:'none', flex:1, fontSize:13, background:'transparent'}} onKeyDown={e=>{ if(e.key==='Enter' && hits.length) go(hits[0]) }} onFocus={()=> hits.length && setOpen(true)} onBlur={()=> setTimeout(()=> setOpen(false), 150)} />
+        {open && hits.length > 0 && (
+          <div style={{position:'absolute', top:'110%', left:0, right:0, background:'#fff', border:'1px solid #E2E8E5', borderRadius:12, boxShadow:'0 8px 24px rgba(0,0,0,0.12)', zIndex:50, overflow:'hidden'}}>
+            {hits.map((h, i)=> (
+              <button key={i} onMouseDown={()=> go(h)} style={{display:'flex', gap:8, width:'100%', textAlign:'left', padding:'8px 12px', fontSize:13, border:0, background:'#fff', cursor:'pointer'}}>
+                <span>{h.type === 'Incident' ? '🚨' : '📍'}</span>
+                <span style={{flex:1}}><b>{h.name}</b> <span style={{color:'#64748B', fontSize:11}}>{h.level || h.type}</span></span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="header-right">

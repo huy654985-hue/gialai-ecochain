@@ -185,14 +185,13 @@ Migration: `app.database.Base.metadata.create_all(bind=engine)` (Alembic scaffol
 ## Development
 
 ```bash
-# backend
-pytest -q                          # 16 tests
-$env:PYTHONPATH="backend"; python -m pytest backend/tests -v
+# backend — 44 tests (auth, feedback, search, GEE fallback, phases 2-9...)
+$env:PYTHONPATH="backend"; $env:APP_ENV="test"; python -m pytest backend/tests -q
 
-# frontend
-npm run lint
-npm run build
+# frontend — 27 vitest (api client, scope store, i18n) + build
+cd frontend && npm test && npm run build
 ```
+CI (`.github/workflows/ci.yml`) runs both on push/PR.
 
 ---
 

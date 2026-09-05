@@ -18,8 +18,49 @@ function statusColor(s?: string){
   return '#FEE2E2'
 }
 
-function ConfigBoard({ geo }: { geo: any }){
+function FeedbackTriage(){
+  const [rows, setRows] = useState<any[]>([])
+  const [msg, setMsg] = useState('')
+  const token = (()=>{ try{ return sessionStorage.getItem('ecogl_admin_token') }catch{ return null } })()
+  const load = async ()=>{
+    if(!token){ setMsg('Đăng nhập admin ở mục ModelSwitcher để xem báo lỗi'); return }
+    try{
+      const r = await fetch(`${API}/api/feedback`, { headers:{ Authorization:`Bearer ${token}` } })
+      if(r.status === 401 || r.status === 403){ setMsg('Phiên admin hết hạn hoặc không đủ quyền'); return }
+      setRows(await r.json()); setMsg('')
+    }catch(e:any){ setMsg(String(e.message || e)) }
+  }
+  useEffect(()=>{ load() },[])
+  const resolve = async (id: number)=>{
+    if(!token) return
+    const r = await fetch(`${API}/api/feedback/${id}/resolve`, { method:'POST', headers:{ Authorization:`Bearer ${token}` } })
+    if(r.ok){ setRows(rs => rs.map(x => x.id === id ? { ...x, status:'RESOLVED' } : x)) }
+  }
+  const open = rows.filter(r => r.status !== 'RESOLVED')
   return (
+    <div className="card" style={{background:'#fff', border:'1px solid #E2E8E5', borderRadius:12, padding:16, marginTop:12}}>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+        <h3 style={{margin:0}}>🐞 Báo lỗi từ người dùng {open.length > 0 && <span style={{fontSize:11, background:'#DC2626', color:'#fff', padding:'2px 8px', borderRadius:999}}>{open.length} chưa xử lý</span>}</h3>
+        <button onClick={load} style={{fontSize:12, background:'#fff', border:'1px solid #E2E8E5', borderRadius:999, padding:'4px 10px'}}>↻ Tải lại</button>
+      </div>
+      {msg && <div style={{marginTop:8, fontSize:12, color:'#64748B'}}>{msg}</div>}
+      {rows.length === 0 && !msg && <div style={{marginTop:8, fontSize:13, color:'#64748B'}}>Chưa có báo lỗi nào.</div>}
+      {rows.slice(0, 20).map(f=> (
+        <div key={f.id} style={{marginTop:8, border:'1px solid #E2E8E5', borderRadius:10, padding:'8px 10px', fontSize:13, opacity: f.status === 'RESOLVED' ? 0.6 : 1}}>
+          <div style={{display:'flex', justifyContent:'space-between', gap:8}}>
+            <b>#{f.id} [{f.category}]</b>
+            <span style={{fontSize:11, background:'#F1F5F3', padding:'2px 8px', borderRadius:999}}>{f.status}</span>
+          </div>
+          <div style={{marginTop:4}}>{f.message}</div>
+          <div style={{fontSize:11, color:'#64748B', marginTop:2}}>{f.page_url} · {f.contact} · {f.created_at}</div>
+          {f.status !== 'RESOLVED' && <button onClick={()=> resolve(f.id)} style={{marginTop:6, fontSize:12, background:'#0F766E', color:'#fff', border:0, borderRadius:999, padding:'4px 12px'}}>Đánh dấu đã xử lý</button>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ConfigBoard({ geo }: { geo: any }){  return (
     <div style={{display:'grid', gap:8, marginTop:8}}>
       {geo.summary?.all_live && <div style={{fontSize:13, fontWeight:700, color:'#166534'}}>● Tất cả đã LIVE</div>}
       {SERVICES.map(sv=>{
@@ -94,6 +135,7 @@ export default function Admin(){
       </div>
 
       <ModelSwitcher />
+      <FeedbackTriage />
       <div className="audit">Nhật ký: 14:32 Quản trị Tỉnh đã xác minh sự cố Thôn A — THÀNH CÔNG</div>
       <style>{`.health,.agents{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:12px} .health div,.agents div{background:#fff; border:1px solid #E2E8E5; border-radius:12px; padding:12px; font-size:13px} .audit{background:#fff; border:1px solid #E2E8E5; border-radius:12px; padding:12px; margin-top:12px; font-size:13px; font-family:monospace} @media (max-width: 640px){ .health,.agents{ grid-template-columns:1fr; } }`}</style>
     </div>

@@ -249,8 +249,18 @@ def reports_draft():
     return {"reports": ["Daily","Weekly","Monthly","Incident","Forest","Carbon","EUDR","Logistics","Resilience"], "status":"DRAFT", "needs_approval": True}
 
 @router.get("/search/global")
-def global_search(q:str=Query(...)):
-    return {"query": q, "results": [{"type":"Commune","name":"Xã A"},{"type":"Incident","id":"inc-1"}]}
+def global_search(q: str = Query(...), db: Session = Depends(get_db)):
+    from app.models.risk import Incident
+    like = f"%{q.strip()}%"
+    units = db.query(AdministrativeUnit).filter(AdministrativeUnit.name.ilike(like)).limit(8).all()
+    incs = db.query(Incident).filter(Incident.title.ilike(like)).limit(5).all()
+    return {"query": q, "results": [
+        {"type": "Commune" if u.level in ("COMMUNE", "VILLAGE") else "Area",
+         "name": u.name, "id": u.id, "level": u.level,
+         "lat": u.centroid_lat, "lng": u.centroid_lng} for u in units
+    ] + [
+        {"type": "Incident", "name": i.title, "id": i.id} for i in incs
+    ]}
 
 @router.get("/search/semantic")
 def semantic_search(q:str=Query(...)):

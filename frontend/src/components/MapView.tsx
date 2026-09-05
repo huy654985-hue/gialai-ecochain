@@ -185,6 +185,36 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
       : prev)
   }
 
+  // Header search → fly to commune / coords
+  useEffect(()=>{
+    const h = (e:any)=>{
+      const d = e.detail || {}
+      const map = mapRef.current
+      try{
+        const feats = communesRef.current?.features || []
+        const q = String(d.name || '').toLowerCase()
+        const f = feats.find((x:any)=>{
+          const n = String(x.properties?.ten_xa || '').toLowerCase()
+          return n && (n.includes(q) || (q && n.startsWith(q.slice(0, 6))))
+        })
+        if(f && map){ selectCommune(f.properties); return }
+      }catch{}
+      if(d.lat && d.lng && map){
+        try{
+          map.flyTo({ center:[d.lng, d.lat], zoom:12, duration:1200 })
+          void new (maplibregl as any).Popup({ closeButton:true, maxWidth:'300px' })
+            .setLngLat([d.lng, d.lat] as any)
+            .setHTML(`<div style="font-family:Inter,sans-serif"><b>${d.name || 'Vị trí'}</b><br/><span style="font-size:11px;color:#64748B">${d.level || d.type || ''} · ${d.lat}, ${d.lng}</span></div>`)
+            .addTo(map)
+        }catch{}
+        window.dispatchEvent(new CustomEvent('ecochain-select-area', { detail:{ area: d.name } }))
+        onSelectRef.current?.('search', d.name || '')
+      }
+    }
+    window.addEventListener('ecochain-search' as any, h)
+    return ()=> window.removeEventListener('ecochain-search' as any, h)
+  },[])
+
   const tickerLines = [
     "15:02:10 - Trạm An Khê vừa gửi chỉ số Độ ẩm: 32% (Cảnh báo gió phơn)",
     "15:01:45 - Vệ tinh Sentinel cập nhật ảnh quét vùng rừng Ia Mơr",
