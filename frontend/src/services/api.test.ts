@@ -113,4 +113,15 @@ describe('api client', () => {
     const f = new File([new Uint8Array([1,2,3])], 'a.jpg', { type: 'image/jpeg' })
     await expect(uploadProposalPhoto('p1', f, 'u1')).resolves.toEqual({ photo_id: 1, is_duplicate: false, hash: 'abc' })
   })
+
+  it('missions + plans command board APIs', async () => {
+    mockFetch(true, [{ id: 'm1', goal: 'Bảo vệ rừng', scope: 'Province', status: 'ACTIVE' }])
+    await expect(api.missions()).resolves.toEqual([{ id: 'm1', goal: 'Bảo vệ rừng', scope: 'Province', status: 'ACTIVE' }])
+    mockFetch(false, {}, 500)
+    await expect(api.missions()).resolves.toEqual([])
+    mockFetch(true, { mission_id: 'm2', goal: 'Mới' })
+    await expect(api.createMission({ goal: 'Mới' })).resolves.toEqual({ mission_id: 'm2', goal: 'Mới' })
+    mockFetch(true, { id: 'p1', goal: 'G', tasks: [] })
+    await expect(api.planDetail('p1')).resolves.toEqual({ id: 'p1', goal: 'G', tasks: [] })
+  })
 })

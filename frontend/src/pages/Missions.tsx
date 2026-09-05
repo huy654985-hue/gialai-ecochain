@@ -1,100 +1,193 @@
 import { useEffect, useState } from 'react'
+import { api } from '../services/api'
 
-const STEPS = ['Đến vị trí', 'Chụp ảnh', 'Thu thập bằng chứng', 'Xác minh'] as const
-const LS_KEY = 'ecogl_mission_042'
+type Mission = { id: string; goal: string; scope?: string; status?: string }
+type Plan = { id: string; goal: string; approval_status?: string; execution_status?: string }
+type Task = { id: string; name: string; agent?: string; status?: string }
 
-type Saved = { steps: boolean[]; started: boolean; location: string; log: string[] }
-
-function load(): Saved {
-  try{
-    const raw = localStorage.getItem(LS_KEY)
-    if(raw){ const j = JSON.parse(raw); return { steps: j.steps ?? [false,false,false,false], started: !!j.started, location: j.location ?? '', log: j.log ?? [] } }
-  }catch{}
-  return { steps: [false,false,false,false], started: false, location: '', log: [] }
-}
+const statusColor = (s?: string) =>
+  s === 'COMPLETED' || s === 'APPROVED' || s === 'RUNNING' ? '#0F766E'
+  : s === 'FAILED' || s === 'REJECTED' ? '#DC2626' : '#F59E0B'
 
 export default function Missions(){
-  const [role, setRole]= useState<'public'|'verifier'>( 'public')
-  const [steps, setSteps] = useState<boolean[]>(load().steps)
-  const [started, setStarted] = useState(load().started)
-  const [location, setLocation] = useState(load().location)
-  const [log, setLog] = useState<string[]>(load().log)
+  const [tab, setTab] = useState<'missions'|'plans'|'field'>('missions')
+  const [missions, setMissions] = useState<Mission[]>([])
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [goal, setGoal] = useState('')
+  const [planGoal, setPlanGoal] = useState('')
+  const [openPlan, setOpenPlan] = useState<string | null>(null)
+  const [detail, setDetail] = useState<any>(null)
+  const [sim, setSim] = useState<any>(null)
+  const [rec, setRec] = useState<any>(null)
 
-  useEffect(()=>{
-    try{ localStorage.setItem(LS_KEY, JSON.stringify({ steps, started, location, log })) }catch{}
-  },[steps, started, location, log])
-
+  // field checklist (per-device, honest local-only)
+  const [steps, setSteps] = useState<boolean[]>(()=>{
+    try{ return JSON.parse(localStorage.getItem('ecogl_mission_042') || '{"steps":[false,false,false,false]}').steps }catch{ return [false,false,false,false] }
+  })
+  const [started, setStarted] = useState(()=> localStorage.getItem('ecogl_mission_started') === '1')
+  const [log, setLog] = useState<string[]>(()=>{
+    try{ return JSON.parse(localStorage.getItem('ecogl_mission_log') || '[]') }catch{ return [] }
+  })
+  useEffect(()=>{ try{
+    localStorage.setItem('ecogl_mission_042', JSON.stringify({ steps }))
+    localStorage.setItem('ecogl_mission_started', started ? '1' : '0')
+    localStorage.setItem('ecogl_mission_log', JSON.stringify(log.slice(-10)))
+  }catch{} },[steps, started, log])
   const pushLog = (m: string)=> setLog(l => [...l.slice(-9), `${new Date().toLocaleTimeString('vi-VN')} ${m}`])
 
-  const toggle = (i: number)=>{
-    setSteps(s => s.map((v, j)=> j === i ? !v : v))
-    pushLog(`${steps[i] ? 'Bỏ tick' : 'Hoàn thành'}: ${STEPS[i]}`)
+  const refresh = async ()=>{
+    setLoading(true)
+    try{
+      const [m, p] = await Promise.all([api.missions(), api.plans()])
+      setMissions(Array.isArray(m) ? m : [])
+      setPlans(Array.isArray(p) ? p : [])
+      setError('')
+    }catch(e:any){ setError(String(e.message || e)) }
+    finally{ setLoading(false) }
+  }
+  useEffect(()=>{ refresh() },[])
+
+  const create = async ()=>{
+    if(!goal.trim()) return
+    try{
+      await api.createMission({ goal: goal.trim(), scope: 'Province' })
+      setGoal('')
+      refresh()
+    }catch(e:any){ setError(String(e.message || e).slice(0, 200)) }
   }
 
-  const useMyLocation = ()=>{
-    if(!navigator.geolocation){ pushLog('Trình duyệt không hỗ trợ vị trí'); return }
-    navigator.geolocation.getCurrentPosition(
-      (p)=> { setLocation(`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`); pushLog('Đã gắn vị trí hiện tại') },
-      ()=> pushLog('Bị từ chối quyền vị trí'),
-    )
+  const createP = async ()=>{
+    if(!planGoal.trim()) return
+    try{
+      await api.createPlan(planGoal.trim())
+      setPlanGoal('')
+      refresh()
+    }catch(e:any){ setError(String(e.message || e).slice(0, 200)) }
   }
 
-  const done = steps.filter(Boolean).length
+  const open = async (id: string)=>{
+    if(openPlan === id){ setOpenPlan(null); setDetail(null); setSim(null); setRec(null); return }
+    setOpenPlan(id); setDetail(null); setSim(null); setRec(null)
+    try{ setDetail(await api.planDetail(id)) }catch(e:any){ setError(String(e.message || e).slice(0, 200)) }
+  }
+
+  const act = async (kind: 'delegate'|'simulate'|'recommend', id: string)=>{
+    try{
+      const r: any = kind === 'delegate' ? await api.delegatePlan(id)
+        : kind === 'simulate' ? await api.simulatePlan(id) : await api.recommendPlan(id)
+      if(kind === 'simulate') setSim(r)
+      if(kind === 'recommend') setRec(r)
+      if(kind === 'delegate'){ setDetail(await api.planDetail(id)); refresh() }
+    }catch(e:any){ setError(String(e.message || e).slice(0, 200)) }
+  }
+
+  const doneCount = (ts: Task[])=> ts.filter(t => t.status === 'COMPLETED' || t.status === 'DONE').length
+  const activeMissions = missions.filter(m => m.status !== 'COMPLETED').length
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap:16}}>
-      <div style={{display:'flex', justifyContent:'space-between'}}>
-        <h1>Missions</h1>
-        <select value={role} onChange={e=> setRole(e.target.value as any)} style={{padding:'6px 10px', borderRadius:999, border:'1px solid #E2E8E5'}}>
-          <option value="public">Public / Community</option>
-          <option value="verifier">Field Verifier</option>
-        </select>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:8}}>
+        <h1>Missions {missions.length > 0 && <span style={{fontSize:12, background:'#0F766E', color:'#fff', padding:'2px 8px', borderRadius:999}}>{activeMissions} đang chạy</span>}</h1>
+        <div style={{display:'flex', gap:6}}>
+          {([['missions','Nhiệm vụ'],['plans','Kế hoạch AI'],['field','Thực địa']] as const).map(([v, label])=> (
+            <button key={v} onClick={()=> setTab(v)} style={{padding:'6px 12px', borderRadius:999, border:'1px solid #E2E8E5', background: tab===v ? '#0B1412' : '#fff', color: tab===v ? '#fff' : '#000'}}>{label}</button>
+          ))}
+        </div>
       </div>
 
-      {role==='verifier' ? (
+      {loading && <div className="card">Đang tải nhiệm vụ...</div>}
+      {error && <div className="card" style={{borderColor:'#F59E0B'}}>⚠ {error}</div>}
+
+      {tab === 'missions' && !loading && (
+        <>
+          <div style={{display:'flex', gap:8}}>
+            <input value={goal} onChange={e=> setGoal(e.target.value)} placeholder="Mục tiêu nhiệm vụ mới, vd: Bảo vệ rừng Ia Mơr mùa khô..." aria-label="Mục tiêu mới" style={{flex:1, border:'1px solid #E2E8E5', borderRadius:999, padding:'8px 14px', fontSize:13}} onKeyDown={e=> { if(e.key === 'Enter') create() }} />
+            <button onClick={create} style={{background:'#0F766E', color:'#fff', border:0, borderRadius:999, padding:'8px 16px', fontWeight:700}}>Tạo</button>
+          </div>
+          {missions.length === 0 && <div className="card">Chưa có nhiệm vụ nào — tạo mới ở trên.</div>}
+          {missions.map(m=> (
+            <div key={m.id} className="card" style={{borderLeft:`4px solid ${statusColor(m.status)}`}}>
+              <div style={{display:'flex', justifyContent:'space-between', gap:8}}>
+                <b>{m.goal}</b>
+                <span style={{fontSize:11, background:'#F1F5F3', padding:'2px 8px', borderRadius:999, whiteSpace:'nowrap'}}>{m.status} · {m.scope}</span>
+              </div>
+              <div style={{fontSize:11, color:'#64748B', marginTop:4}}>id {String(m.id).slice(0,8)}</div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {tab === 'plans' && !loading && (
+        <>
+          <div style={{display:'flex', gap:8}}>
+            <input value={planGoal} onChange={e=> setPlanGoal(e.target.value)} placeholder="Mục tiêu kế hoạch AI, vd: Giảm gián đoạn chuỗi cà phê mùa mưa..." aria-label="Kế hoạch mới" style={{flex:1, border:'1px solid #E2E8E5', borderRadius:999, padding:'8px 14px', fontSize:13}} onKeyDown={e=> { if(e.key === 'Enter') createP() }} />
+            <button onClick={createP} style={{background:'#0B1412', color:'#fff', border:0, borderRadius:999, padding:'8px 16px', fontWeight:700}}>Lập kế hoạch</button>
+          </div>
+          {plans.length === 0 && <div className="card">Chưa có kế hoạch nào.</div>}
+          {plans.map(p=> (
+            <div key={p.id} className="card">
+              <button onClick={()=> open(p.id)} style={{all:'unset', cursor:'pointer', width:'100%'}} aria-expanded={openPlan === p.id}>
+                <div style={{display:'flex', justifyContent:'space-between', gap:8}}>
+                  <b>{p.goal}</b>
+                  <span style={{fontSize:11, background:'#F1F5F3', padding:'2px 8px', borderRadius:999, whiteSpace:'nowrap'}}>{p.approval_status} · {p.execution_status} {openPlan === p.id ? '▴' : '▾'}</span>
+                </div>
+              </button>
+              {openPlan === p.id && detail && (
+                <div style={{marginTop:10, borderTop:'1px solid #F1F5F9', paddingTop:10}}>
+                  <div style={{fontSize:12, color:'#64748B'}}>Tiến độ task: {doneCount(detail.tasks || [])}/{detail.tasks?.length ?? 0}</div>
+                  <div style={{height:8, background:'#F1F5F9', borderRadius:999, margin:'6px 0 10px'}}>
+                    <div style={{width:`${detail.tasks?.length ? (doneCount(detail.tasks) / detail.tasks.length) * 100 : 0}%`, height:'100%', borderRadius:999, background:'#0F766E'}} />
+                  </div>
+                  {(detail.tasks || []).map((t: Task)=> (
+                    <div key={t.id} style={{display:'flex', gap:8, fontSize:13, padding:'4px 0'}}>
+                      <span>{t.status === 'COMPLETED' || t.status === 'DONE' ? '✅' : '⬜'}</span>
+                      <span style={{flex:1}}>{t.name}</span>
+                      <span style={{fontSize:11, color:'#64748B'}}>{t.agent} · {t.status}</span>
+                    </div>
+                  ))}
+                  <div style={{display:'flex', gap:6, marginTop:10, flexWrap:'wrap'}}>
+                    <button onClick={()=> act('delegate', p.id)} style={btn}>Giao việc cho agent</button>
+                    <button onClick={()=> act('simulate', p.id)} style={btn}>Mô phỏng phương án</button>
+                    <button onClick={()=> act('recommend', p.id)} style={btn}>Xin khuyến nghị AI</button>
+                  </div>
+                  {sim && <div style={{marginTop:8, fontSize:12, background:'#EFF6FF', borderRadius:8, padding:8}}>Mô phỏng: {JSON.stringify(sim.simulations ?? sim).slice(0, 300)}</div>}
+                  {rec && <div style={{marginTop:8, fontSize:12, background:'#F0FDF4', borderRadius:8, padding:8}}>Khuyến nghị: {JSON.stringify(rec).slice(0, 300)}</div>}
+                  {detail.evidence && <div style={{marginTop:8, fontSize:11, color:'#64748B'}}>Nguồn: {(detail.evidence.sources || []).join(', ')} · Tin cậy: {detail.evidence.confidence}</div>}
+                </div>
+              )}
+            </div>
+          ))}
+        </>
+      )}
+
+      {tab === 'field' && (
         <div style={{background:'#fff', border:'1px solid #E2E8E5', borderRadius:16, padding:16}}>
           <h3>NHIỆM VỤ #042 — Xác minh bất thường rừng {started && <span style={{fontSize:11, background:'#DCFCE7', padding:'2px 8px', borderRadius:999}}>ĐANG THỰC HIỆN</span>}</h3>
-          <div>📍 {location || 'Gia Lai'} · Ưu tiên CAO · Vì vệ tinh + thời tiết + cộng đồng</div>
-          <div style={{marginTop:8, fontSize:13}}>Tiến độ: {done}/{STEPS.length}</div>
+          <div>📍 Gia Lai · Ưu tiên CAO · checklist lưu trên máy này</div>
           <div style={{marginTop:8, display:'grid', gap:6, fontSize:13}}>
-            {STEPS.map((s, i)=> (
-              <label key={s}><input type="checkbox" checked={steps[i]} onChange={()=> toggle(i)} /> {s}</label>
+            {['Đến vị trí','Chụp ảnh','Thu thập bằng chứng','Xác minh'].map((s, i)=> (
+              <label key={s}><input type="checkbox" checked={steps[i]} onChange={()=> { setSteps(x => x.map((v, j)=> j === i ? !v : v)); pushLog(`${steps[i] ? 'Bỏ tick' : 'Xong'}: ${s}`) }} /> {s}</label>
             ))}
           </div>
           <button onClick={()=> { setStarted(true); pushLog('Bắt đầu nhiệm vụ') }} disabled={started} style={{marginTop:10, background:'#0B1412', color:'#fff', padding:'8px 12px', borderRadius:999, border:0, width:'100%'}}>{started ? 'ĐANG THỰC HIỆN...' : 'BẮT ĐẦU NHIỆM VỤ'}</button>
           <div style={{marginTop:10, display:'flex', gap:6, flexWrap:'wrap'}}>
             <button onClick={()=> pushLog('Đã chụp ảnh bằng chứng')}>📷 Ảnh</button>
             <button onClick={()=> pushLog('Đã quay video hiện trường')}>🎥 Video</button>
-            <button onClick={useMyLocation}>📍 Vị trí</button>
+            <button onClick={()=> {
+              if(!navigator.geolocation){ pushLog('Trình duyệt không hỗ trợ vị trí'); return }
+              navigator.geolocation.getCurrentPosition(()=> pushLog('Đã gắn vị trí hiện tại'), ()=> pushLog('Bị từ chối quyền vị trí'))
+            }}>📍 Vị trí</button>
             <button onClick={()=> pushLog('🚨 Đã gửi tín hiệu khẩn cấp')}>🚨 Khẩn cấp</button>
           </div>
-          {log.length > 0 && (
-            <div style={{marginTop:10, fontSize:12, background:'#F8FAF9', borderRadius:8, padding:8}}>
-              {log.map((l, i)=> <div key={i}>{l}</div>)}
-            </div>
-          )}
-          <div style={{marginTop:8, fontSize:12, color:'#64748B'}}>Tick/mốc thời gian được lưu trên trình duyệt này (reload không mất). Gửi: Kết quả + Ảnh + Vị trí + Mô tả → AI đánh giá</div>
-        </div>
-      ) : (
-        <div style={{background:'#fff', border:'1px solid #E2E8E5', borderRadius:16, padding:16}}>
-          <h3>Nhiệm vụ #042 — Xác minh bất thường rừng</h3>
-          <div>📍 Gia Lai · Ưu tiên CAO</div>
-          <div style={{marginTop:8, fontSize:13, color:'#334155'}}>Nhiệm vụ chứa vị trí, sự kiện, ưu tiên, hành động khuyến nghị, bằng chứng cần thiết.</div>
-          <button onClick={()=> setRole('verifier')} style={{marginTop:10, background:'#0F766E', color:'#fff', padding:'8px 12px', borderRadius:999, border:0}}>Bắt đầu</button>
+          {log.length > 0 && <div style={{marginTop:10, fontSize:12, background:'#F8FAF9', borderRadius:8, padding:8}}>{log.map((l, i)=> <div key={i}>{l}</div>)}</div>}
         </div>
       )}
 
-      <div style={{background:'#F8FAF9', border:'1px solid #E2E8E5', borderRadius:12, padding:12, fontSize:13}}>
-        <b>Vòng lặp học tập (ví dụ minh họa):</b> AI dự đoán CAO (87%) → Thực địa XÁC NHẬN → So sánh → Đánh giá mô hình → Cập nhật Digital Twin <span style={{fontSize:10, padding:'2px 6px', borderRadius:999, background:'#FEF3C7'}}>DEMO DATA</span><br/>
-        <span style={{fontSize:12, color:'#64748B'}}>Dự đoán: Cháy 82% · Thực tế: Đã xác nhận cháy · Kết quả: ĐÚNG · Dùng cho cải tiến liên tục</span>
-      </div>
-
-      <div style={{background:'#fff', border:'1px solid #E2E8E5', borderRadius:16, padding:16}}>
-        <h4>Tác động môi trường (khi sự kiện gần nông nghiệp)</h4>
-        <div style={{fontSize:13, lineHeight:1.8}}>
-          Rừng: -12 ha · Carbon: +X tCO₂e (ước tính) · EUDR: Nguy cơ truy xuất · Logistics: +2.4h trễ · Chỉ hiện khi liên quan
-        </div>
-      </div>
+      <style>{`.card{background:#fff; border:1px solid #E2E8E5; border-radius:16px; padding:16px}`}</style>
     </div>
   )
 }
+
+const btn = { fontSize:12, padding:'6px 12px', borderRadius:999, border:'1px solid #E2E8E5', background:'#fff' } as const
