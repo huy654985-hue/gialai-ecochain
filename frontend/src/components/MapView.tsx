@@ -234,8 +234,6 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
   const XYZ_TILES: Record<string, { url: string, attribution: string }> = {
     esri: { url: TILE_FIX('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'), attribution: '© Esri World Imagery' },
     osm: { url: TILE_FIX('https://tile.openstreetmap.org/{z}/{x}/{y}.png'), attribution: '© OpenStreetMap' },
-    google_s: { url: TILE_FIX('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'), attribution: '© Google Satellite' },
-    google_y: { url: TILE_FIX('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'), attribution: '© Google Hybrid' },
     eox: { url: TILE_FIX('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg'), attribution: '© EOX Sentinel-2 cloudless' },
   }
   const DEFAULT_TILE_URL = XYZ_TILES.esri.url
@@ -495,6 +493,7 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
     if(!mapContainer.current || mapRef.current) return
     const inlineStyle: any = {
       version: 8,
+      glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.p14',
       sources: {
         osm: { type:'raster', tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize:256, attribution:'© OpenStreetMap' }
       },
@@ -508,12 +507,12 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
       maxBounds: [[107.0, 11.5],[109.7, 15.1]],
       attributionControl: false,
     })
-    // Fallback nếu style CARTO lỗi CORS → chuyển Google Satellite
+    // Fallback nếu style lỗi → dùng Esri Satellite (loại bỏ Google tiles: xám khi không key)
     map.on('error', (e:any)=>{
       if(e?.error?.message?.includes('style') || e?.styleURL?.includes('cartocdn')){
-        console.warn('CARTO style lỗi, fallback Google Satellite', e)
+        console.warn('Style lỗi, fallback Esri Satellite', e)
         if(!map.getSource('base-xyz')){
-          map.addSource('base-xyz', { type:'raster', tiles:['https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'], tileSize:256, attribution:'© Google Satellite' } as any)
+          map.addSource('base-xyz', { type:'raster', tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize:256, attribution:'© Esri World Imagery' } as any)
           map.addLayer({ id:'base-xyz', type:'raster', source:'base-xyz' } as any)
         }
       }
