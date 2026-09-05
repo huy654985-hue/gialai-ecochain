@@ -51,4 +51,15 @@ describe('api client', () => {
     mockFetch(true, { id: 'a1', status: 'ACKNOWLEDGED' })
     await expect(api.ackAlert('a1')).resolves.toEqual({ id: 'a1', status: 'ACKNOWLEDGED' })
   })
+
+  it('simWhatIf returns simulation result', async () => {
+    const sim = { simulation_id: 's1', result: { affected: { villages: 12, roads: 3 } } }
+    mockFetch(true, sim)
+    await expect(api.simWhatIf('Flood', { rainfall: 20 })).resolves.toEqual(sim)
+  })
+
+  it('simResponse returns risk for an intervention', async () => {
+    mockFetch(true, { intervention: 'Pre-position team', risk: 'MODERATE' })
+    await expect(api.simResponse('Pre-position team')).resolves.toEqual({ intervention: 'Pre-position team', risk: 'MODERATE' })
+  })
 })
