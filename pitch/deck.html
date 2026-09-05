@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4 landscape; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #0F1E1A; }
+  .slide { width: 297mm; height: 210mm; padding: 14mm 16mm; page-break-after: always; position: relative; overflow: hidden; }
+  .slide:last-child { page-break-after: avoid; }
+  .dark { background: #0B1412; color: #fff; }
+  .kicker { font-size: 11pt; letter-spacing: 2px; color: #0F766E; font-weight: 700; }
+  .dark .kicker { color: #5EEAD4; }
+  h1 { font-size: 30pt; margin: 4mm 0; line-height: 1.15; }
+  h2 { font-size: 24pt; margin: 3mm 0 5mm; }
+  .sub { font-size: 14pt; color: #64748B; }
+  .dark .sub { color: #A7F3D0; }
+  ul { margin: 4mm 0 0 7mm; font-size: 13pt; line-height: 1.65; }
+  li { margin-bottom: 2mm; }
+  b.k { color: #0F766E; }
+  .dark b.k { color: #5EEAD4; }
+  .cols { display: flex; gap: 8mm; }
+  .cols > div { flex: 1; }
+  .card { background: #F1F5F3; border-radius: 4mm; padding: 5mm; margin-top: 4mm; font-size: 12pt; }
+  .dark .card { background: #13201D; }
+  .flow { display: flex; align-items: center; gap: 3mm; margin-top: 6mm; flex-wrap: wrap; font-size: 12pt; font-weight: 700; }
+  .step { background: #0F766E; color: #fff; border-radius: 3mm; padding: 3mm 5mm; }
+  .arrow { color: #0F766E; font-size: 16pt; }
+  table { border-collapse: collapse; width: 100%; margin-top: 5mm; font-size: 11.5pt; }
+  th { background: #0F766E; color: #fff; padding: 2.5mm; text-align: left; }
+  td { border: 1px solid #CBD5D1; padding: 2.5mm; vertical-align: top; }
+  .foot { position: absolute; bottom: 8mm; left: 16mm; right: 16mm; font-size: 9pt; color: #94A3B8; display: flex; justify-content: space-between; }
+  .qr { width: 52mm; height: 52mm; border: 3mm solid #0F766E; border-radius: 4mm; }
+  .badge { display: inline-block; background: #DCFCE7; color: #166534; border-radius: 3mm; padding: 1mm 3mm; font-size: 10pt; font-weight: 700; }
+  .warn { display: inline-block; background: #FEF3C7; color: #92400E; border-radius: 3mm; padding: 1mm 3mm; font-size: 10pt; font-weight: 700; }
+  code { font-size: 10.5pt; background: #E2E8E5; padding: 0.5mm 2mm; border-radius: 2mm; }
+  .dark code { background: #1E3A36; }
+</style>
+</head>
+<body>
+
+<div class="slide dark">
+  <div class="kicker">GIALAI EOCHAIN · HỆ THỐNG CẢNH BÁO SỚM CHÁY RỪNG CẤP TỈNH</div>
+  <h1>GIALAI EcoChain</h1>
+  <div class="sub">Phát hiện sớm → Xác minh cộng đồng → Hành động kịp thời</div>
+  <div class="card">Vệ tinh NDVI + Điểm nhiệt FIRMS → AI phát hiện → Cộng đồng xác minh 2 lớp → Chính thức duyệt → Nhiệm vụ thực địa.<br>Một câu trả lời rõ ràng cho bài toán cháy rừng Gia Lai.</div>
+  <div class="foot"><span>Live demo: frontend-orcin-eight-y39ieidj2r.vercel.app</span><span>01 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">02 · VẤN ĐỀ THỰC TẾ</div>
+  <h2>Cháy rừng Gia Lai — Hè 2026</h2>
+  <ul>
+    <li><b class="k">Phù Mỹ Đông (20–21/7):</b> ~30 ha rừng phòng hộ ven biển, ~500 người dập lửa, gió đổi hướng bùng lại trong đêm.</li>
+    <li><b class="k">Cát Thành:</b> 133 ha rừng trồng — địa hình dốc đá, còn bom mìn sót lại.</li>
+    <li><b class="k">Vũng Chua (Ghềnh Ráng):</b> 4,23 ha — dốc đứng xe chữa cháy không vào được, 500+ người + flycam.</li>
+    <li><b class="k">Hội Sơn, Hoài Ân:</b> cháy thực bì tái bùng nhiều lần — có người đốt thực bì.</li>
+  </ul>
+  <div class="card">Điểm chung: phát hiện muộn, địa hình hiểm trở, lực lượng đến sau — <b>cần cảnh báo sớm theo từng xã, không phải tin tức sau sự cố.</b></div>
+  <div class="foot"><span>Nguồn: Cổng TTĐT tỉnh Gia Lai, Báo Gia Lai, Tiền Phong, VOV (đã lưu vết trong DB seed)</span><span>02 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">03 · ĐỐI TƯỢNG HƯỞNG LỢI</div>
+  <h2>Ai dùng EcoChain?</h2>
+  <div class="cols"><div>
+    <ul>
+      <li><b class="k">Kiểm lâm + BCH PCCC tỉnh:</b> bản đồ CẤP cháy 135 xã cập nhật liên tục, quyết định điều quân sớm.</li>
+      <li><b class="k">Chính quyền xã/thôn:</b> nhận cảnh báo, xác minh chính thức, giao nhiệm vụ thực địa.</li>
+    </ul>
+  </div><div>
+    <ul>
+      <li><b class="k">Người dân (Kinh, Jrai, Êđê, Ba Na...):</b> báo cháy bằng ảnh, xác minh lẫn nhau, nhận khuyến nghị tiếng mình.</li>
+      <li><b class="k">Nông hộ cà phê:</b> EUDR, cảnh báo ảnh hưởng vùng trồng.</li>
+    </ul>
+  </div></div>
+  <div class="foot"><span>Giao diện 3 ngôn ngữ Việt – Jrai – Êđê</span><span>03 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">04 · Ý TƯỞNG &amp; SÁNG TẠO</div>
+  <h2>Không phải app xem tin cháy</h2>
+  <ul>
+    <li><b class="k">AI tính CẤP cháy từng xã</b> từ vệ tinh + thời tiết + điểm nhiệt — cấm chỉnh tay (chỉ admin).</li>
+    <li><b class="k">Xác minh 2 lớp:</b> AI phát hiện → cộng đồng 2 lượt + ảnh hash → chính quyền duyệt.</li>
+    <li><b class="k">Vòng học kín:</b> dự đoán → thực tế → ghi bài học → AI lần sau chính xác hơn.</li>
+    <li><b class="k">Trung thực dữ liệu:</b> chỗ nào DEMO thì gắn nhãn DEMO, LIVE thì chứng minh bằng API.</li>
+  </ul>
+  <div class="foot"><span></span><span>04 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">05 · GIẢI PHÁP</div>
+  <h2>GIALAI EcoChain làm gì?</h2>
+  <div class="flow"><span class="step">Vệ tinh + FIRMS</span><span class="arrow">→</span><span class="step">AI phát hiện</span><span class="arrow">→</span><span class="step">Cộng đồng xác minh</span><span class="arrow">→</span><span class="step">Chính thức duyệt</span><span class="arrow">→</span><span class="step">Nhiệm vụ</span></div>
+  <ul>
+    <li>Bản đồ 135 xã, mỗi xã 1 điểm màu theo CẤP — bấm xem chi tiết.</li>
+    <li>Mạng xã hội mini: feed báo cáo, vote xác minh, ảnh bằng chứng hash SHA-256.</li>
+    <li>What-if Lab + Digital Twin: mô phỏng mưa/nóng/mất rừng trước khi quyết.</li>
+  </ul>
+  <div class="foot"><span></span><span>05 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">06 · KIẾN TRÚC</div>
+  <h2>FastAPI + Vite + Vercel</h2>
+  <div class="cols"><div>
+    <ul>
+      <li><b class="k">Backend:</b> FastAPI, SQLAlchemy, Alembic migrations, JWT + refresh rotation.</li>
+      <li><b class="k">Frontend:</b> React + Vite + MapLibre, lazy-load từng trang.</li>
+      <li><b class="k">Deploy:</b> 2 project Vercel riêng, env tách bạch, CI chạy tests mỗi push.</li>
+    </ul>
+  </div><div>
+    <ul>
+      <li><b class="k">Dữ liệu:</b> SQLite dev → Postgres/PostGIS prod (sẵn sàng).</li>
+      <li><b class="k">Chịu lỗi:</b> mất DB/key vẫn trả lời, không bao giờ 500 vì hạ tầng.</li>
+      <li><b class="k">Quan trắc:</b> request-ID log, health check từng nguồn.</li>
+    </ul>
+  </div></div>
+  <div class="foot"><span>Repo: github.com/huy654985-hue/gialai-ecochain</span><span>06 / 24</span></div>
+</div>
+
+<div class="slide dark">
+  <div class="kicker">07 · AI AGENT / RAG / TOOL CALLING</div>
+  <h2>7 agent v1.0, không phải 1 chatbot</h2>
+  <ul>
+    <li><b class="k">ForestGuard</b> (vệ tinh) · <b class="k">FireRisk</b> (CẤP cháy) · <b class="k">DisasterGuard</b> (đa thiên tai) · <b class="k">CarbonGuard</b> · <b class="k">EUDRGuard</b> · GreenRoute · Predictive — điều phối bởi Master Agent.</li>
+    <li><b class="k">Tool calling thật:</b> thời tiết, NDVI, FIRMS, địa hình — kết quả đính kèm evidence.</li>
+    <li><b class="k">RAG trích dẫn:</b> mỗi câu trả lời kèm citations, tách rõ OBSERVED / AI INFERENCE / SIMULATION / OFFICIAL.</li>
+  </ul>
+  <div class="foot"><span>Trợ lý AI (nút 🌿) + AI Inspector xem workflow</span><span>07 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">08 · DỮ LIỆU</div>
+  <h2>Vệ tinh + Thời tiết + FIRMS</h2>
+  <ul>
+    <li><b class="k">Google Earth Engine:</b> Sentinel-2/Landsat — <span class="badge">LIVE đã CONNECTED</span></li>
+    <li><b class="k">NASA FIRMS:</b> điểm nóng VIIRS/MODIS theo ngày — <span class="badge">LIVE (điểm thật 2026-09-05)</span></li>
+    <li><b class="k">Open-Meteo + NASA POWER:</b> thời tiết keyless — <span class="badge">LIVE</span></li>
+    <li><b class="k">Sentinel Hub:</b> <span class="warn">chờ credentials (đang DEMO trung thực)</span> — health check báo đúng trạng thái.</li>
+  </ul>
+  <div class="foot"><span>GET /api/health/geospatial xem trạng thái từng nguồn theo thời gian thực</span><span>08 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">09 · FIRE RISK ENGINE</div>
+  <h2>CẤP cháy tính thế nào?</h2>
+  <table>
+    <tr><th>Yếu tố</th><th>Trọng số</th><th>Nguồn</th></tr>
+    <tr><td>Khô nhiên liệu (NDVI/NDMI)</td><td>30%</td><td>Sentinel-2</td></tr>
+    <tr><td>Nguy hiểm thời tiết</td><td>20%</td><td>Open-Meteo</td></tr>
+    <tr><td>Gần điểm FIRMS</td><td>15%</td><td>NASA FIRMS</td></tr>
+    <tr><td>Gió / Thiếu mưa / Địa hình</td><td>10% + 10% + 10%</td><td>Thời tiết + DEM</td></tr>
+    <tr><td>Lịch sử + cộng đồng</td><td>5%</td><td>DB + xác minh</td></tr>
+  </table>
+  <div class="card">→ Điểm 0–100 → CẤP I–V. Batch 135 xã 1 request cho bản đồ. <b>Không ai chỉnh tay được CẤP (chỉ admin).</b></div>
+  <div class="foot"><span>POST /api/fire/commune-levels</span><span>09 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">10 · WHAT-IF / DIGITAL TWIN</div>
+  <h2>Hỏi “nếu... thì sao?” trước khi quyết</h2>
+  <ul>
+    <li>Kéo slider mưa/nóng/mất rừng/đóng đường → chạy mô phỏng thật, lưu slot so sánh A/B/C + biểu đồ.</li>
+    <li>Hỏi tiếng Việt (“mưa lớn 30%, quốc lộ tắc 48h”) → tự parse ra tham số.</li>
+    <li>Kịch bản lưu DB (WhatIfEngine + scorecard 6 chiều), reload không mất; xem chuỗi cascade theo giờ.</li>
+    <li>Twin: trạng thái CURRENT/FORECAST + danh sách kịch bản đã lưu.</li>
+  </ul>
+  <div class="foot"><span>Seeded — chạy lại ra số giống nhau, kiểm chứng được</span><span>10 / 24</span></div>
+</div>
+
+<div class="slide dark">
+  <div class="kicker">11 · VÒNG XÁC MINH</div>
+  <h2>Community → AI → Verification → Mission</h2>
+  <div class="flow"><span class="step">Báo cáo + ảnh</span><span class="arrow">→</span><span class="step">2 lượt xác minh</span><span class="arrow">→</span><span class="step">COMMUNITY VERIFIED</span><span class="arrow">→</span><span class="step">Chính thức duyệt</span><span class="arrow">→</span><span class="step">Nhiệm vụ</span></div>
+  <ul>
+    <li>Ảnh hash SHA-256 chống trùng, check vị trí/thời gian; không cho tự xác minh bài của mình.</li>
+    <li>Bài học ghi lại: AI đoán → thực tế → ĐÚNG/SAI cho lần sau.</li>
+    <li>Nhiệm vụ AI đề xuất từ cảnh báo ACTIVE, 1 bấm là tạo.</li>
+  </ul>
+  <div class="foot"><span></span><span>11 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">12 · BẢN ĐỊA HÓA</div>
+  <h2>Của Gia Lai, cho người Gia Lai</h2>
+  <ul>
+    <li><b class="k">135 xã/phường</b> ranh giới thật trên bản đồ, mỗi xã 1 điểm CẤP cháy.</li>
+    <li><b class="k">3 ngôn ngữ:</b> Việt – Jrai – Êđê (Plei/Buôn, apui/pui...), thiếu từ thì hiện tiếng Việt, cộng đồng góp ý tiếp.</li>
+    <li>Vụ cháy thật Hè 2026 làm dữ liệu gốc + hồ sơ lịch sử trong app.</li>
+    <li>Gia Lai: 44 dân tộc, thiểu số ~46% — tiếng mẹ đẻ là điều kiện để cảnh báo tới được dân.</li>
+  </ul>
+  <div class="foot"><span></span><span>12 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">13 · KHẢ THI &amp; MỞ RỘNG</div>
+  <h2>Chạy được ngay, lớn được dần</h2>
+  <div class="cols"><div>
+    <ul>
+      <li>Free-tier: Vercel + Neon/Supabase + Open-Meteo + FIRMS đều miễn phí.</li>
+      <li>Không key vẫn chạy (DEMO gắn nhãn), có key thì LIVE từng phần.</li>
+    </ul>
+  </div><div>
+    <ul>
+      <li>Thêm tỉnh = thêm ranh + bbox, kiến trúc multi-tenant sẵn sàng.</li>
+      <li>Alembic migrations, PostGIS, Redis rate-limit đã chuẩn bị.</li>
+    </ul>
+  </div></div>
+  <div class="foot"><span></span><span>13 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">14 · BẢO MẬT</div>
+  <h2>An toàn theo thiết kế</h2>
+  <ul>
+    <li><b class="k">JWT + refresh rotation</b> (phát hiện dùng lại token), RBAC viewer/admin, route nhạy cảm khóa hết.</li>
+    <li><b class="k">Secrets không chạm browser:</b> key chỉ ở env backend; error message tự scrub key trước khi trả về.</li>
+    <li><b class="k">Rate limit</b> 60/phút (Redis khi có, memory khi không), CORS khóa theo domain, security headers.</li>
+    <li>41+ test bảo mật: 401/403, trùng xác minh, vượt quyền đều có test.</li>
+  </ul>
+  <div class="foot"><span>docs/SECURITY.md trung thực: chưa có gì ghi rõ chưa có</span><span>14 / 24</span></div>
+</div>
+
+<div class="slide dark">
+  <div class="kicker">15 · DEMO 3 PHÚT</div>
+  <h2>Kịch bản trình diễn</h2>
+  <ul>
+    <li><b class="k">0:00</b> — Mở bản đồ: 135 chấm CẤP, bấm 1 xã xem popup AI.</li>
+    <li><b class="k">0:40</b> — Bật điểm nóng FIRMS, bấm điểm đỏ xem chi tiết vệ tinh.</li>
+    <li><b class="k">1:20</b> — Community: vote xác minh 1 bài → badge nâng cấp; tải ảnh bằng chứng.</li>
+    <li><b class="k">2:00</b> — What-if: kéo mưa +30% → chạy → so sánh A/B.</li>
+    <li><b class="k">2:40</b> — Hỏi trợ lý AI + mở AI Inspector xem workflow.</li>
+  </ul>
+  <div class="foot"><span></span><span>15 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">16 · KHÁC BIỆT</div>
+  <h2>Không phải chatbot</h2>
+  <table>
+    <tr><th></th><th>Chatbot AI thường</th><th>EcoChain</th></tr>
+    <tr><td>Dữ liệu</td><td>Kiến thức cắt sẵn, dễ bịa</td><td>Vệ tinh + FIRMS + thời tiết theo giờ, ghi nguồn</td></tr>
+    <tr><td>Xác minh</td><td>Không có</td><td>2 lớp cộng đồng + chính quyền, ảnh hash</td></tr>
+    <tr><td>Hành động</td><td>Dừng ở câu trả lời</td><td>Ra nhiệm vụ, theo dõi tới thực địa</td></tr>
+    <tr><td>Học hỏi</td><td>Không nhớ</td><td>Ghi bài học ĐÚNG/SAI cho lần sau</td></tr>
+    <tr><td>Ngôn ngữ</td><td>Tiếng Việt/Anh</td><td>+ Jrai, Êđê</td></tr>
+  </table>
+  <div class="foot"><span></span><span>16 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">17 · LỘ TRÌNH</div>
+  <h2>Tiếp theo</h2>
+  <ul>
+    <li><b class="k">Ngắn hạn:</b> credentials Sentinel Hub → NDVI LIVE; xoay key đã lộ; người bản ngữ duyệt từ điển Jrai/Êđê/Ba Na.</li>
+    <li><b class="k">Trung hạn:</b> Postgres/PostGIS + Redis prod, endpoint serve ảnh bằng chứng, test E2E mở rộng.</li>
+    <li><b class="k">Dài hạn:</b> nhân rộng tỉnh khác, app mobile offline-first cho kiểm lâm vùng lõm sóng.</li>
+  </ul>
+  <div class="foot"><span></span><span>17 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">18 · KẾT QUẢ MVP</div>
+  <h2>Con số kiểm chứng được</h2>
+  <ul>
+    <li><b class="k">52</b> backend tests + <b class="k">28</b> frontend tests + <b class="k">6</b> E2E — CI chạy mỗi push.</li>
+    <li>GEE <span class="badge">LIVE</span> · FIRMS <span class="badge">LIVE</span> · LLM <span class="badge">LIVE</span> · Sentinel <span class="warn">chờ key (báo đúng)</span></li>
+    <li>135 xã có CẤP cháy riêng · 7 agent v1.0 · JWT/RBAC/rate-limit/audit đầy đủ.</li>
+    <li>Web + API production 24/7 trên Vercel (link trang sau).</li>
+  </ul>
+  <div class="foot"><span>Số liệu tại thời điểm làm slide — kiểm tra live ở /api/health/geospatial</span><span>18 / 24</span></div>
+</div>
+
+<div class="slide dark">
+  <div class="kicker">19 · DEMO</div>
+  <h2>Quét là dùng</h2>
+  <div class="cols">
+    <div><img class="qr" src="qr_demo.png" alt="QR demo"></div>
+    <div>
+      <div style="font-size:14pt; margin-bottom:3mm">🌐 Web: <code>frontend-orcin-eight-y39ieidj2r.vercel.app</code></div>
+      <div style="font-size:14pt; margin-bottom:3mm">🔌 API: <code>backend-delta-flame-42.vercel.app/docs</code></div>
+      <div style="font-size:14pt;">💻 Code: <code>github.com/huy654985-hue/gialai-ecochain</code></div>
+    </div>
+  </div>
+  <div class="foot"><span>Mở bằng điện thoại để thử bản mobile + tiếng Jrai/Êđê</span><span>19 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">20 · ĐỐI CHIẾU TIÊU CHÍ CHẤM</div>
+  <h2>Trả lời đúng barem BGK</h2>
+  <table>
+    <tr><th>Tiêu chí sơ loại</th><th>Điểm</th><th>EcoChain đáp ứng</th></tr>
+    <tr><td>Ý tưởng sáng tạo</td><td>20</td><td>AI tính CẤP từng xã + xác minh 2 lớp + vòng học kín</td></tr>
+    <tr><td>Khả năng ứng dụng</td><td>20</td><td>Web live 24/7, free-tier, thêm tỉnh dễ dàng</td></tr>
+    <tr><td>Hiệu quả dùng AI</td><td>25</td><td>7 agent + RAG citations + tool calling, có AI Inspector</td></tr>
+    <tr><td>Chất lượng sản phẩm</td><td>20</td><td>52+28+6 tests, CI, trung thực DEMO/LIVE</td></tr>
+    <tr><td>Thuyết trình</td><td>15</td><td>Demo live 5 phút theo kịch bản trang 15</td></tr>
+  </table>
+  <div class="card">Chủ đề dự thi: <b>nhóm 2 — AI vì cộng đồng</b> (cháy rừng = vấn đề cộng đồng Gia Lai).</div>
+  <div class="foot"><span></span><span>21 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">21 · BỘ PROMPT TIÊU BIỂU</div>
+  <h2>Prompt thật đang chạy trong app</h2>
+  <ul>
+    <li><b class="k">Cảnh báo sớm:</b> <code>Bạn là chuyên gia PCCC Gia Lai. Dựa trên NDVI={ndvi}, điểm nhiệt FIRMS={fires}, thời tiết {weather}, hãy sinh kịch bản PCCC 3 mức độ (WATCH/WARNING/CRITICAL) cho Huyện Chư Prông, kèm tọa độ và hành động cụ thể.</code></li>
+    <li><b class="k">Mô phỏng lan tỏa:</b> <code>Mô phỏng lan tỏa cháy rừng Gia Lai bbox 107.3,13.1,109.4,14.7 với gió 20km/h, độ ẩm 30%, nhiệt 35°C. Trả về tốc độ lan, vùng nguy hiểm, đề xuất đường băng cản.</code></li>
+    <li><b class="k">Xác minh cộng đồng:</b> <code>Phân loại ảnh người dân gửi: có phải đám cháy thật không, đánh giá độ tin cậy dựa trên hash, thời gian, vị trí.</code></li>
+  </ul>
+  <div class="foot"><span>File gốc: docs/prompts.md trong repo</span><span>22 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">22 · CÔNG CỤ AI ĐÃ DÙNG</div>
+  <h2>Minh bạch công cụ (theo Thể lệ)</h2>
+  <ul>
+    <li><b class="k">Lập trình cùng AI:</b> trợ lý lập trình (Muse Spark qua OpenCode) — sinh code, review, viết test.</li>
+    <li><b class="k">LLM trong sản phẩm:</b> Gemini 2.5 Flash (tổng hợp PCCC, khói, what-if) + Groq dự phòng.</li>
+    <li><b class="k">Hiểu rõ nguyên lý:</b> RAG tự xây (vector store + citations), tool calling tự viết, Fire Risk Engine công thức mở (trọng số công khai trang 09).</li>
+    <li><b class="k">Dữ liệu hợp pháp:</b> NASA FIRMS, Open-Meteo, Sentinel (key riêng), ảnh Wikimedia Commons có giấy phép.</li>
+  </ul>
+  <div class="foot"><span></span><span>23 / 24</span></div>
+</div>
+
+<div class="slide dark">
+  <div class="kicker">23 · MÔ HÌNH DỰ THI</div>
+  <h2>Vấn đề → Giải pháp → Sản phẩm → Tác động</h2>
+  <ul>
+    <li><b class="k">Vấn đề:</b> cháy rừng Gia Lai Hè 2026 (133 ha Cát Thành, ~30 ha Phù Mỹ Đông) — phát hiện muộn.</li>
+    <li><b class="k">Giải pháp:</b> AI tính CẤP từng xã + cộng đồng xác minh 2 lớp + chính quyền duyệt.</li>
+    <li><b class="k">Sản phẩm:</b> web live (bản đồ, feed, what-if, 3 ngôn ngữ) + link trải nghiệm trang 19.</li>
+    <li><b class="k">Tác động:</b> cảnh báo đến từng xã bằng tiếng mẹ đẻ, quyết định sớm hơn, chính xác hơn.</li>
+  </ul>
+  <div class="foot"><span>Điểm mới tạo dấu ấn theo Thể lệ</span><span>24 / 24</span></div>
+</div>
+
+<div class="slide">
+  <div class="kicker">24 · NHÓM</div>
+  <h2>Nhóm GIALAI EcoChain</h2>
+  <ul>
+    <li>Đội thi 03–05 thành viên: <b>[ĐIỀN TÊN + vai trò từng người]</b></li>
+    <li>GV hướng dẫn/cố vấn (nếu có): <b>[ĐIỀN TÊN]</b></li>
+    <li>Liên hệ qua repo GitHub (Issues) hoặc mục <b>Báo lỗi</b> ngay trong app.</li>
+    <li>Cảm ơn Ban Giám khảo đã lắng nghe — <b>mời trải nghiệm live!</b></li>
+  </ul>
+  <div class="foot"><span>GIALAI EcoChain — Phát hiện sớm → Xác minh cộng đồng → Hành động kịp thời</span><span>25 / 24</span></div>
+</div>
+
+</body>
+</html>
