@@ -291,8 +291,20 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
           const fires = data.fires || data.hotspots || []
           fires.slice(0,20).forEach((f:any)=>{
             const el=document.createElement('div')
-            el.style.width='14px'; el.style.height='14px'; el.style.borderRadius='999px'; el.style.background='#DC2626'; el.style.border='2px solid #fff'; el.style.boxShadow='0 0 8px rgba(220,38,38,0.8)'
-            const m=new (maplibregl as any).Marker({ element: el }).setLngLat([f.longitude || f.lon || 108.3, f.latitude || f.lat || 13.9] as any).addTo(mapRef.current)
+            el.style.width='14px'; el.style.height='14px'; el.style.borderRadius='999px'; el.style.background='#DC2626'; el.style.border='2px solid #fff'; el.style.boxShadow='0 0 8px rgba(220,38,38,0.8)'; el.style.cursor='pointer'
+            el.title='Điểm nóng cháy — bấm để xem chi tiết'
+            const lng = f.longitude || f.lon || 108.3, lat = f.latitude || f.lat || 13.9
+            const m=new (maplibregl as any).Marker({ element: el }).setLngLat([lng, lat] as any).addTo(mapRef.current)
+            el.addEventListener('click', ()=>{
+              const conf = String(f.confidence || 'n').toUpperCase()
+              const confVi = conf.startsWith('H') ? 'Cao' : conf.startsWith('N') ? 'Thường' : conf.startsWith('L') ? 'Thấp' : conf
+              void new (maplibregl as any).Popup({ closeButton:true, maxWidth:'320px' })
+                .setLngLat([lng, lat] as any)
+                .setHTML(`<div style="font-family:Inter,sans-serif; min-width:220px"><b>🔥 Điểm nóng cháy rừng</b><br/>Vệ tinh <b>${f.satellite || data.satellite || 'VIIRS'}</b> (${f.instrument || ''}) · Độ tin cậy <b>${confVi}</b><br/>🌡 Độ sáng <b>${f.brightness ?? '?'} K</b>${f.frp ? ` · Công suất bức xạ <b>${f.frp} MW</b>` : ''}<br/>🕒 Phát hiện: <b>${f.acq_date || ''} ${f.acq_time || ''}</b><br/>📍 ${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}<br/><span style="font-size:10px;color:#64748B">Nguồn: NASA FIRMS · ${data.status || ''} · Đây là điểm nhiệt vệ tinh, cần xác minh thực địa trước khi kết luận cháy</span></div>`)
+                .addTo(mapRef.current)
+              window.dispatchEvent(new CustomEvent('ecochain-select-area', { detail:{ area: `Điểm nóng ${Number(lat).toFixed(2)}, ${Number(lng).toFixed(2)}` } }))
+              onSelectRef.current?.('hotspot', `${lat},${lng}`)
+            })
             hotspotMarkers.current.push(m)
           })
           const displayStatus = data.status
