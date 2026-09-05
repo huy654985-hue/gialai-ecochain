@@ -31,6 +31,17 @@ export default function FireRiskGauge({ compact=false, onSelect }: { compact?:bo
   const [status, setStatus] = useState<string>('—')
   const [manual, setManual] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  // Chỉ admin/host được chỉnh tay — mọi người khác xem cấp do AI tính.
+  useEffect(()=>{
+    const tok = (()=>{ try{ return sessionStorage.getItem('ecogl_admin_token') }catch{ return null } })()
+    if(!tok) return
+    fetch(`${API}/api/auth/me`, { headers:{ Authorization:`Bearer ${tok}` } })
+      .then(r=> r.ok ? r.json() : null)
+      .then(j=> setIsAdmin(j?.role === 'admin'))
+      .catch(()=> {})
+  },[])
 
   // AI vệ tinh: NDVI (GEE Sentinel-2) + thời tiết + FIRMS + địa hình → score → cấp I-V
   const analyze = async (area:string)=>{
@@ -86,7 +97,8 @@ export default function FireRiskGauge({ compact=false, onSelect }: { compact?:bo
       <div className="flex items-center gap-2 text-[10px] text-slate-500">
         <span>🛰️ {loading ? 'AI đang phân tích vệ tinh...' : inputs || 'Chờ AI vệ tinh'}</span>
         <span className={`px-2 py-0.5 rounded-full font-bold ${status==='LIVE' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>{status}</span>
-        {manual && <span className="px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-500 border border-slate-200">Chọn tay</span>}
+        {manual && <span className="px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-500 border border-slate-200">Chọn tay (admin)</span>}
+        {!isAdmin && <span className="px-2 py-0.5 rounded-full font-bold bg-slate-50 text-slate-400 border border-slate-200" title="Chỉ admin/host được chỉnh tay">🔒 AI tính</span>}
         <button onClick={()=> analyze(scope.commune || scope.village || '')} className="ml-auto underline hover:text-slate-700">Tính lại</button>
       </div>
       {(score !== null || conf !== null) && (
@@ -102,8 +114,9 @@ export default function FireRiskGauge({ compact=false, onSelect }: { compact?:bo
         {LEVELS.map(l=>(
           <button
             key={l.lv}
-            onClick={()=> { setLevel(l.lv); setManual(true); onSelect?.(l.lv) }}
-            title="Chọn tay để thử kịch bản (AI tính lại khi đổi khu vực)"
+            onClick={isAdmin ? ()=> { setLevel(l.lv); setManual(true); onSelect?.(l.lv) } : undefined}
+            disabled={!isAdmin}
+            title={isAdmin ? 'Admin: chọn tay để thử kịch bản (AI tính lại khi đổi khu vực)' : 'Cấp do AI tính theo khu vực — chỉ admin/host được chỉnh tay'}
             className={`flex-1 rounded-full text-[11px] font-bold transition-all flex items-center justify-center relative z-10 ${level===l.lv ? 'text-white shadow-md' : 'text-slate-600 hover:bg-white/60'}`}
             style={level===l.lv ? {background: l.color.replace('bg-','')} : {}}
           >
@@ -127,7 +140,7 @@ export default function FireRiskGauge({ compact=false, onSelect }: { compact?:bo
       {/* Labels */}
       <div className="grid grid-cols-5 gap-1 mt-3">
         {LEVELS.map(l=>(
-          <div key={l.lv} onClick={()=> setLevel(l.lv)} className={`text-center py-1.5 rounded-xl border text-[10px] leading-tight cursor-pointer transition-all ${level===l.lv ? `${l.bg} ${l.border} ${l.text} font-bold shadow-sm` : 'bg-white border-slate-100 text-slate-500 hover:border-slate-200'}`}>
+          <div key={l.lv} onClick={isAdmin ? ()=> { setLevel(l.lv); setManual(true) } : undefined} title={isAdmin ? 'Admin: chọn tay' : 'Cấp do AI tính — chỉ admin/host được chỉnh tay'} className={`text-center py-1.5 rounded-xl border text-[10px] leading-tight transition-all ${level===l.lv ? `${l.bg} ${l.border} ${l.text} font-bold shadow-sm` : 'bg-white border-slate-100 text-slate-500 hover:border-slate-200'} ${isAdmin ? 'cursor-pointer' : ''}`}>
             <div className="font-extrabold">{l.lv}</div>
             <div className="hidden sm:block text-[9px] mt-0.5 leading-none">{l.label}</div>
           </div>

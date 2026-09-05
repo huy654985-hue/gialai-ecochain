@@ -8,15 +8,17 @@ const LEVELS = [
   { lv:'V', label:'CỰC KỲ NGUY HIỂM', color:'#DC2626' },
 ]
 
-export function FireWarningGauge({ level = 'IV', onSelect }: { level:string; onSelect?:(lv:string)=>void }){
+export function FireWarningGauge({ level = 'IV', onSelect, adminOnly = true }: { level:string; onSelect?:(lv:string)=>void; adminOnly?: boolean }){
   const idx = LEVELS.findIndex(l=> l.lv===level)
   const pct = ((idx+0.5)/5)*100
+  const canEdit = !adminOnly || (()=>{ try{ return !!sessionStorage.getItem('ecogl_admin_token') }catch{ return false } })()
+  const pick = (lv:string)=>{ if(canEdit) onSelect?.(lv) }
   return (
     <div style={{background:'#fff', border:'1px solid #E2E8E5', borderRadius:16, padding:16}}>
       <div style={{fontWeight:800, fontSize:12, letterSpacing:0.6}}>CẤP CẢNH BÁO CHÁY RỪNG</div>
       <div style={{position:'relative', height:36, marginTop:12, background:'#F1F5F3', borderRadius:999, display:'flex'}}>
         {LEVELS.map(l=>(
-          <div key={l.lv} onClick={()=>onSelect?.(l.lv)} style={{flex:1, display:'grid', placeItems:'center', fontSize:11, fontWeight:700, cursor:'pointer', color: LEVELS[idx].lv===l.lv ? '#fff' : '#0B1412', zIndex:1}}>{l.lv}</div>
+          <div key={l.lv} onClick={()=>pick(l.lv)} title={canEdit ? 'Admin: chọn tay' : 'Cấp do AI tính — chỉ admin/host được chỉnh tay'} style={{flex:1, display:'grid', placeItems:'center', fontSize:11, fontWeight:700, cursor: canEdit ? 'pointer' : 'default', color: LEVELS[idx].lv===l.lv ? '#fff' : '#0B1412', zIndex:1}}>{l.lv}</div>
         ))}
         <div style={{position:'absolute', left:`calc(${pct}% - 18px)`, top:-8, transition:'left 600ms cubic-bezier(0.16,1,0.3,1)'}}>
           <div style={{width:36, height:36, background:'#0B1412', color:'#fff', borderRadius:999, display:'grid', placeItems:'center', fontSize:11, fontWeight:800, boxShadow:'0 4px 12px rgba(0,0,0,0.2)'}}>▲</div>
