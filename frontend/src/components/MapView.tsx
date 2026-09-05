@@ -106,6 +106,7 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
     return undefined
   }
   const LEVEL_VI: Record<string,string> = { I:'Thấp', II:'Trung bình', III:'Cao', IV:'Nguy hiểm', V:'Cực kỳ nguy hiểm' }
+  const hazardVi = (t:string)=> ({ FIRE:'Cháy', FLOOD:'Lũ', LANDSLIDE:'Sạt lở', DROUGHT:'Hạn', HEAT:'Nắng nóng', STORM:'Bão' } as any)[t] || t
   const LEVEL_COLOR: Record<string,string> = { I:'#0EA5E9', II:'#10B981', III:'#F59E0B', IV:'#F97316', V:'#DC2626' }
   // Popup xã + chẩn đoán AI vệ tinh (I-V) — mở ngay, AI điền sau
   const communePopup = async (f:any, lngLat:any, map:any)=>{
@@ -114,12 +115,18 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
     window.dispatchEvent(new CustomEvent('ecochain-select-area', { detail:{ area: f.ten_xa } }))
     onSelectRef.current?.('commune', f.ten_xa || ('ma-' + f.ma_xa))
     try{
-      const r = await fetch(TILE_FIX(`${API}/api/fire/risk?administrative_unit_id=${encodeURIComponent(f.ten_xa||('ma-'+f.ma_xa))}&lat=${lngLat[1].toFixed(4)}&lon=${lngLat[0].toFixed(4)}`))
-      const j = await r.json()
+      const [fr, ds] = await Promise.all([
+        fetch(TILE_FIX(`${API}/api/fire/risk?administrative_unit_id=${encodeURIComponent(f.ten_xa||('ma-'+f.ma_xa))}&lat=${lngLat[1].toFixed(4)}&lon=${lngLat[0].toFixed(4)}`)).then(r=>r.json()).catch(()=> null),
+        fetch(TILE_FIX(`${API}/api/disaster/summary?administrative_unit_id=${encodeURIComponent(f.ten_xa||('ma-'+f.ma_xa))}&lat=${lngLat[1].toFixed(4)}&lon=${lngLat[0].toFixed(4)}`)).then(r=>r.json()).catch(()=> null),
+      ])
+      if(!fr) throw new Error('unavailable')
+      const j = fr
       const lv = j.warning_level || 'I', c = LEVEL_COLOR[lv] || '#64748B'
       const ev = j.evidence || {}
       const n = Array.isArray(ev.hotspots) ? ev.hotspots.length : (ev.hotspots ?? 0)
-      popup.setHTML(base + `<br/><div style="margin-top:6px;display:flex;gap:6px;align-items:center"><span style="background:${c};color:#fff;font-weight:800;font-size:12px;padding:2px 10px;border-radius:999">CẤP ${lv} · ${LEVEL_VI[lv]||''}</span><span style="font-size:11px">Risk <b>${j.risk_score ?? '?'}/100</b></span><span style="font-size:10px;background:${j.status==='LIVE'?'#DCFCE7':'#FEF3C7'};padding:2px 6px;border-radius:999">${j.status||''}</span></div><div style="font-size:11px;color:#334155;margin-top:4px">🛰️ NDVI ${ev.satellite?.ndvi ?? '?'} · ${ev.weather?.temperature ?? '?'}°C · FIRMS ${n} điểm · Tin cậy ${j.confidence ?? '?'}%</div><div style="font-size:10px;color:#64748B">${Object.keys(j.factors||{}).join(', ')}</div></div>`)
+      const sigs = (ds?.signals || []).filter((s:any)=> s.risk_type !== 'FIRE').slice(0,4)
+      const sigHtml = sigs.length ? `<div style="font-size:11px;color:#334155;margin-top:4px">🛡️ Đa thiên tai (DisasterGuard): ${sigs.map((s:any)=> `${hazardVi(s.risk_type)} <b>${s.score}</b>`).join(' · ')}</div>` : ''
+      popup.setHTML(base + `<br/><div style="margin-top:6px;display:flex;gap:6px;align-items:center"><span style="background:${c};color:#fff;font-weight:800;font-size:12px;padding:2px 10px;border-radius:999">CẤP ${lv} · ${LEVEL_VI[lv]||''}</span><span style="font-size:11px">Risk <b>${j.risk_score ?? '?'}/100</b></span><span style="font-size:10px;background:${j.status==='LIVE'?'#DCFCE7':'#FEF3C7'};padding:2px 6px;border-radius:999">${j.status||''}</span></div><div style="font-size:11px;color:#334155;margin-top:4px">🛰️ NDVI ${ev.satellite?.ndvi ?? '?'} · ${ev.weather?.temperature ?? '?'}°C · FIRMS ${n} điểm · Tin cậy ${j.confidence ?? '?'}%</div>${sigHtml}<div style="font-size:10px;color:#64748B">${Object.keys(j.factors||{}).join(', ')}</div></div>`)
     }catch{ popup.setHTML(base + `<br/><span style="font-size:11px;color:#B45309">AI chưa kết nối (UNAVAILABLE) — thử lại sau</span></div>`) }
   }
   const communeBounds = (feat:any)=>{

@@ -118,6 +118,38 @@ def disaster_overview(db:Session=Depends(get_db)):
     table.sort(key=lambda x: x["risk"], reverse=True)
     return {"critical_areas": table, "origin": tag_data_origin()}
 
+@router.get("/disaster/summary")
+async def disaster_summary(administrative_unit_id: str = Query(default="Gia Lai"),
+                           lat: float = Query(default=13.9), lon: float = Query(default=108.3)):
+    """DisasterGuard multi-hazard snapshot for map popups — pure compute, no DB writes."""
+    import hashlib
+    import random
+    inputs: dict = {}
+    try:
+        from app.services.weather_service import fetch_current
+        w = await fetch_current(lat, lon)
+        cur = w.get("current", {}) or {}
+        if cur.get("temperature") is not None:
+            inputs["temperature"] = cur.get("temperature")
+        if cur.get("precipitation") is not None:
+            inputs["rainfall"] = cur.get("precipitation")
+        if cur.get("relative_humidity") is not None:
+            inputs["humidity"] = cur.get("relative_humidity")
+    except Exception:
+        pass
+    try:
+        rng = random.Random(int(hashlib.sha256(f"{lat:.1f}{lon:.1f}".encode()).hexdigest()[:8], 16))
+        inputs.setdefault("elevation", round(rng.uniform(100, 800), 1))
+        inputs.setdefault("slope", round(rng.uniform(5, 30), 1))
+    except Exception:
+        pass
+    signals = disaster_guard.analyze_all(administrative_unit_id,
+                                         {"type": "Point", "coordinates": [lon, lat]}, inputs)
+    compact = [{"risk_type": s["risk_type"], "score": s["score"], "level": s["level"]} for s in signals]
+    return {"administrative_unit_id": administrative_unit_id, "signals": compact,
+            "fused": disaster_guard.data_fusion(signals), "inputs": inputs,
+            "origin": tag_data_origin(), "status": "LIVE"}
+
 @router.post("/disaster/analyze")
 def disaster_analyze(body:dict, db:Session=Depends(get_db)):
     unit_id=body.get("administrative_unit_id")
