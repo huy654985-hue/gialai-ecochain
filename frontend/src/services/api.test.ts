@@ -62,4 +62,29 @@ describe('api client', () => {
     mockFetch(true, { intervention: 'Pre-position team', risk: 'MODERATE' })
     await expect(api.simResponse('Pre-position team')).resolves.toEqual({ intervention: 'Pre-position team', risk: 'MODERATE' })
   })
+
+  it('scenarioCreate + scorecard wire WhatIfEngine', async () => {
+    mockFetch(true, { id: 'sc1', name: 'Mưa lớn', type: 'DISASTER', version: 1 })
+    await expect(api.scenarioCreate('Mưa lớn', 'DISASTER', { rainfall_pct: 30 })).resolves.toEqual({ id: 'sc1', name: 'Mưa lớn', type: 'DISASTER', version: 1 })
+    mockFetch(true, { risk: 62, cost: 40, co2: 55, forest: 70, logistics: 60, resilience: 65 })
+    const s = await api.scenarioScorecard('sc1')
+    expect(s.risk).toBe(62)
+  })
+
+  it('scenariosCompare returns server-side comparison', async () => {
+    mockFetch(true, { scenarios: [{ id: 'sc1', risk: 62 }], baseline: 'sc1' })
+    await expect(api.scenariosCompare(['sc1'])).resolves.toEqual({ scenarios: [{ id: 'sc1', risk: 62 }], baseline: 'sc1' })
+  })
+
+  it('simCascade returns temporal + spatial chain', async () => {
+    mockFetch(true, { cascade: ['EXTREME RAIN', 'FLOOD'], temporal: { 'T+0': 'Event' } })
+    const c = await api.simCascade('Flood')
+    expect(c.cascade).toContain('FLOOD')
+  })
+
+  it('nlWhatIf parses a Vietnamese question into params', async () => {
+    mockFetch(true, { scenario_id: 'sc9', params: { rainfall: '+30%' }, requires_confirmation: true })
+    const r = await api.nlWhatIf('Mưa lớn 30% thì sao?')
+    expect(r.params.rainfall).toBe('+30%')
+  })
 })
