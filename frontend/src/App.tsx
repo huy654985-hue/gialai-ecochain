@@ -17,6 +17,7 @@ const EUDR = lazy(()=> import('./pages/EUDR'))
 const Logistics = lazy(()=> import('./pages/Logistics'))
 const Twin = lazy(()=> import('./pages/Twin'))
 const Community = lazy(()=> import('./pages/Community'))
+const Notifications = lazy(()=> import('./pages/Notifications'))
 const Governance = lazy(()=> import('./pages/Governance'))
 const Leaderboard = lazy(()=> import('./pages/Leaderboard'))
 const Reports = lazy(()=> import('./pages/Reports'))
@@ -190,7 +191,7 @@ function AnimatedRoutes(){
           <Route path="/leaderboard" element={<PageTransition><Leaderboard/></PageTransition>} />
           <Route path="/reports" element={<PageTransition><Reports/></PageTransition>} />
           <Route path="/admin" element={<PageTransition><Admin/></PageTransition>} />
-          <Route path="/notifications" element={<PageTransition><div className="card">Thông báo — Nguy kịch/Cảnh báo/Nhiệm vụ — Theo mức độ</div></PageTransition>} />
+          <Route path="/notifications" element={<PageTransition><Notifications/></PageTransition>} />
           <Route path="/audit" element={<PageTransition><div className="card">Nhật ký — Thời gian · Người dùng · Hành động · Phạm vi · Trạng thái</div></PageTransition>} />
         </Routes>
       </AnimatePresence>

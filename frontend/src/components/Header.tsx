@@ -1,11 +1,19 @@
 import { Bell, Bot, Menu } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ModeSwitch from './ModeSwitch'
+import { api } from '../services/api'
 
 export default function Header({ onMenu }: { onMenu: ()=>void }) {
   const [now, setNow] = useState(new Date())
+  const [activeCount, setActiveCount] = useState(0)
+  const nav = useNavigate()
   useEffect(()=>{
     const id=setInterval(()=> setNow(new Date()), 1000)
+    api.alertList().then((d: any)=> {
+      const rows = Array.isArray(d) ? d : []
+      setActiveCount(rows.filter((a: any)=> a.status === 'ACTIVE').length)
+    }).catch(()=> {})
     return ()=> clearInterval(id)
   },[])
   const timeStr = now.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) + ' - ' + now.toLocaleDateString('vi-VN')
@@ -26,7 +34,7 @@ export default function Header({ onMenu }: { onMenu: ()=>void }) {
       <div className="header-right">
         <span className="status"><span className="dot live" style={{animation:'pulse 1.5s infinite'}}/> Hệ thống trực tiếp</span>
         <span className="meta">Cập nhật: {timeStr}</span>
-        <button className="icon-btn" aria-label="Thông báo"><Bell size={18}/> <span className="badge">3</span></button>
+        <button className="icon-btn" aria-label="Thông báo" onClick={()=> nav('/notifications')}><Bell size={18}/>{activeCount > 0 && <span className="badge">{activeCount}</span>}</button>
         <button className="assistant"><Bot size={16}/> Trợ lý AI</button>
         <div className="user">QT</div>
       </div>
