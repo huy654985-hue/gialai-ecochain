@@ -73,12 +73,23 @@ async def fire_risk(administrative_unit_id: str = Query(...), lat: float = Query
     # community reports count
     community=2
     result=fire_risk_engine.analyze(administrative_unit_id, satellite=sat, weather=weather, terrain=terrain, hotspots=hotspots, community=community)
-    # save AI prediction
-    pred=AIFirePrediction(administrative_unit_id=administrative_unit_id, risk_score=result["risk_score"], warning_level=result["warning_level"], confidence=result["confidence"], factors=json.dumps(result["factors"]), evidence=json.dumps({"satellite": sat, "weather": weather, "hotspots": len(hotspots)}))
-    db.add(pred); db.commit()
-    # official vs AI Sec33
-    vs=fire_risk_engine.official_vs_ai(db, administrative_unit_id, result["warning_level"])
-    return {**result, "official": vs["official"], "ai": vs["ai"], "discrepancy": vs["discrepancy"], "evidence": {"satellite": sat, "weather": weather, "terrain": terrain, "hotspots": hotspots, "community": community}, "timestamp": time.time(), "status": "LIVE" if result["confidence"]>60 else "CACHED"}
+    # best-effort persistence: serverless FS may be read-only → never 500 the read path
+    official = None
+    try:
+        pred=AIFirePrediction(administrative_unit_id=administrative_unit_id, risk_score=result["risk_score"], warning_level=result["warning_level"], confidence=result["confidence"], factors=json.dumps(result["factors"]), evidence=json.dumps({"satellite": sat, "weather": weather, "hotspots": len(hotspots)}))
+        db.add(pred); db.commit()
+        # official vs AI Sec33
+        vs=fire_risk_engine.official_vs_ai(db, administrative_unit_id, result["warning_level"])
+        official = {"official": vs["official"], "ai": vs["ai"], "discrepancy": vs["discrepancy"]}
+    except Exception:
+        try: db.rollback()
+        except Exception: pass
+    base = {**result,
+            "evidence": {"satellite": sat, "weather": weather, "terrain": terrain, "hotspots": hotspots, "community": community},
+            "timestamp": time.time(), "status": "LIVE" if result["confidence"]>60 else "CACHED"}
+    if official is not None:
+        base.update(official)
+    return base
 
 @router.get("/fire/forecast")
 async def fire_forecast(administrative_unit_id: str = Query(...), lat: float = Query(default=13.9), lon: float = Query(default=108.3)):

@@ -1,5 +1,5 @@
 """ECOGL 1.0 — Phase 5 Production (Fail-safe, Observability, Security)."""
-import logging, time, os
+import logging, time
 from contextlib import asynccontextmanager
 from collections import defaultdict
 
@@ -17,13 +17,12 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup - fail-safe for Vercel
+    # Startup — always try to init+seed (best effort, never crash).
+    # On serverless (Vercel) the filesystem is read-only except /tmp, so set
+    # DATABASE_URL=sqlite:////tmp/ecogl.db (ephemeral) or a Postgres URL.
     try:
-        if os.getenv("VERCEL"):
-            logger.info("Vercel env - skip DB init")
-        else:
-            init_db()
-            logger.info("DB initialized")
+        init_db()
+        logger.info("DB initialized")
     except Exception as e:
         logger.warning(f"DB init skipped: {e}")
     # seed demo data if empty
