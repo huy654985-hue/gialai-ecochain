@@ -204,8 +204,9 @@ def public_open():
 # API gateway Sec76-77 + webhooks Sec78 + adapters Sec79 Sec80-82
 @router.get("/api-gateway")
 def api_gateway():
-    return {"authentication": None, "auth_roadmap": "JWT login/token not implemented",
-            "authorization": None, "rbac_roadmap": "user/roles not implemented",
+    return {"authentication": "JWT (/api/auth/login, HS256)",
+            "auth_endpoints": ["/api/auth/register", "/api/auth/login", "/api/auth/me"],
+            "authorization": "role flag viewer/admin (opt-in per route)",
             "rate_limit": "60/min in-memory per-IP (single instance)",
             "versioning": ["/api/v1", "/api/v2"]}
 

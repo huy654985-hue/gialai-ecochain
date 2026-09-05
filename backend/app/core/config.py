@@ -28,6 +28,8 @@ class Settings(BaseSettings):
 
     # Security
     secret_key: str = Field(default="change-me", alias="SECRET_KEY")
+    auth_algorithm: str = Field(default="HS256", alias="ALGORITHM")
+    access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
 
     # GEE — env-based, no hard-coded secrets
     gee_project_id: Optional[str] = Field(default=None, alias="GEE_PROJECT_ID")
