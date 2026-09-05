@@ -306,12 +306,38 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
   }, [baseXyz])
 
   const hotspotMarkers = useRef<any[]>([])
+  const [hotCount, setHotCount] = useState(0)
+  const [opacity, setOpacity] = useState(0.85)
+  const applyOpacity = (v: number)=>{
+    setOpacity(v)
+    const map = mapRef.current
+    if(!map) return
+    for(const id of ['ndvi', 's1']){
+      try{ if(map.getLayer(id)) map.setPaintProperty(id, 'raster-opacity', v) }catch{}
+    }
+  }
+  const fitHotspots = ()=>{
+    const map = mapRef.current
+    const pts = hotspotMarkers.current
+      .map((m:any)=> { try{ const l = m.getLngLat(); return [l.lng, l.lat] }catch{ return null } })
+      .filter(Boolean) as [number, number][]
+    if(map && pts.length){
+      const lons = pts.map(p=> p[0]), lats = pts.map(p=> p[1])
+      try{ map.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding:60, duration:1000 }) }catch{}
+    }
+  }
+  const ndviValue = (n: any): number | null =>{
+    if(typeof n === 'number') return n
+    if(n && typeof n.mean === 'number') return n.mean
+    return null
+  }
   const toggleSat = async (key:string, geeLayer:string)=>{
     const checked = !activeSat[key]
     setActiveSat(s=> ({...s, [key]: checked}))
     if(!checked){
       if(key==='hotspot'){
         hotspotMarkers.current.forEach((m:any)=>{ try{ m.remove() }catch{} }); hotspotMarkers.current=[]
+        setHotCount(0)
         setInfo(null)
         return
       }
@@ -345,6 +371,7 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
             hotspotMarkers.current.push(m)
           })
           const displayStatus = data.status
+          setHotCount(fires.slice(0,20).length)
           setLiveStatus(displayStatus as any); setInfo({ layer:'hotspot', status: displayStatus, source:'NASA FIRMS', satellite: data.satellite || 'VIIRS', acquired: data.date || fires[0]?.acq_date || data.acquired || new Date().toISOString().slice(0,10), date: data.date || new Date().toISOString().slice(0,10), count: fires.length, bbox: data.bbox })
         } else {
           console.warn('FIRMS chưa khả dụng:', data.reason || data.error)
@@ -696,6 +723,27 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
             <span style={{fontSize:10, padding:'1px 6px', borderRadius:999, background: sourceLive[key==='hotspot'?'firms': key==='ndvi'?'sentinel2':'sentinel1']==='LIVE'?'#DCFCE7':'#FEF3C7', color:'#000'}}>{sourceLive[key==='hotspot'?'firms': key==='ndvi'?'sentinel2':'sentinel1'] || '...'}</span>
           </label>
         ))}
+        {(activeSat.ndvi || activeSat.s1) && (
+          <label style={{display:'block', fontSize:11, background:'rgba(255,255,255,0.08)', padding:'6px 8px', borderRadius:8}}>
+            <div style={{display:'flex', justifyContent:'space-between'}}><span>Độ phủ lớp raster</span><b>{Math.round(opacity * 100)}%</b></div>
+            <input type="range" min={10} max={100} value={Math.round(opacity * 100)} onChange={e=> applyOpacity(Number(e.target.value) / 100)} style={{width:'100%'}} aria-label="Độ phủ lớp raster" />
+          </label>
+        )}
+        {activeSat.hotspot && (
+          <div style={{fontSize:11, background:'rgba(220,38,38,0.25)', padding:'6px 8px', borderRadius:8, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+            <span>🔥 {hotCount} điểm nóng trên bản đồ</span>
+            <button onClick={fitHotspots} style={{border:0, borderRadius:999, padding:'4px 10px', fontSize:11, fontWeight:700, cursor:'pointer'}}>Phóng tới</button>
+          </div>
+        )}
+        {activeSat.ndvi && info?.layer === 'ndvi' && ndviValue(info.ndvi) !== null && (
+          <div style={{fontSize:11, background:'rgba(255,255,255,0.08)', padding:'6px 8px', borderRadius:8}}>
+            <div style={{display:'flex', justifyContent:'space-between'}}><span>🌿 NDVI khu vực</span><b>{ndviValue(info.ndvi)!.toFixed(2)}</b></div>
+            <div style={{position:'relative', height:8, borderRadius:999, marginTop:6, background:'linear-gradient(90deg,#8B5A2B,#F59E0B,#84CC16,#0F766E)'}}>
+              <div style={{position:'absolute', left:`${Math.min(100, Math.max(0, (ndviValue(info.ndvi)! + 0.2) / 1.2 * 100))}%`, top:-3, width:2, height:14, background:'#fff'}} />
+            </div>
+            <div style={{display:'flex', justifyContent:'space-between', fontSize:10, opacity:0.8, marginTop:2}}><span>đất trống</span><span>rừng khỏe</span></div>
+          </div>
+        )}
         <div style={{fontSize:11, opacity:0.6, color:'#e2e8f0'}}>{communesError ? communesError : `Đã tải ${communesCount||'…'} xã · bbox 107.0,12.9,109.6,15.0`}</div>
       </div>)}
 
