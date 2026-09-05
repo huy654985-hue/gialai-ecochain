@@ -52,7 +52,12 @@ def create_app() -> FastAPI:
         version="1.0.0",
         lifespan=lifespan,
     )
-    # Phase 28 Security: explicit origins, no wildcard with credentials
+    # Phase 28 Security: explicit origins, no wildcard with credentials.
+    # allow_credentials=False (Bearer tokens only), so a *.vercel.app regex is
+    # safe and keeps working for preview + new project deployments.
+    # Extra origins via CORS_EXTRA_ORIGINS env (comma-separated).
+    import os as _os
+
     allowed_origins = [
         "https://frontend-orcin-eight-y39ieidj2r.vercel.app",
         "https://frontend-jz2k6tnx7-dan1775.vercel.app",
@@ -60,9 +65,11 @@ def create_app() -> FastAPI:
         "http://localhost:5173",
         "http://localhost:3000",
     ]
+    extra = [o.strip() for o in (_os.getenv("CORS_EXTRA_ORIGINS") or "").split(",") if o.strip()]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=allowed_origins,
+        allow_origins=allowed_origins + extra,
+        allow_origin_regex=r"https://.*\.vercel\.app",
         allow_credentials=False,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
