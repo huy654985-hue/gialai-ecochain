@@ -204,7 +204,10 @@ def public_open():
 # API gateway Sec76-77 + webhooks Sec78 + adapters Sec79 Sec80-82
 @router.get("/api-gateway")
 def api_gateway():
-    return {"authentication":"JWT","authorization":"RBAC","rate_limit":"60/min","versioning":["/api/v1","/api/v2"]}
+    return {"authentication": None, "auth_roadmap": "JWT login/token not implemented",
+            "authorization": None, "rbac_roadmap": "user/roles not implemented",
+            "rate_limit": "60/min in-memory per-IP (single instance)",
+            "versioning": ["/api/v1", "/api/v2"]}
 
 @router.post("/webhooks/subscribe")
 def webhook_sub(body:dict):
