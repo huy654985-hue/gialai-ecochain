@@ -317,7 +317,10 @@ class GEEForestGuardAgent(MockForestGuardAgent):
 
 def get_forest_guard_agent(use_mock: bool | None = None) -> ForestGuardAgent:
     from app.core.config import get_settings
+    from app.services.model_switcher import resolve_version
+
     s = get_settings()
-    if s.is_demo:
+    ver = resolve_version("ForestGuard")  # plumbing is live; only v1.0 exists today
+    if s.is_demo or ver == "v1.0":
         return MockForestGuardAgent()
     return MockForestGuardAgent()
