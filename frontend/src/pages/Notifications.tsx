@@ -16,6 +16,7 @@ const levelColor = (l?: string) =>
 export default function Notifications(){
   const [rows, setRows] = useState<AlertRow[]>([])
   const [filter, setFilter] = useState<'ALL'|'CRITICAL'|'HIGH'>('ALL')
+  const [stFilter, setStFilter] = useState('ALL')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
@@ -23,11 +24,12 @@ export default function Notifications(){
   const [detailLoading, setDetailLoading] = useState(false)
 
   useEffect(()=>{
-    api.alertList()
+    setLoading(true)
+    api.alertList(stFilter)
       .then((d: any)=> setRows(Array.isArray(d) ? d : []))
       .catch((e)=> setError(String(e.message || e)))
       .finally(()=> setLoading(false))
-  },[])
+  },[stFilter])
 
   const open = async (id: string)=>{
     if(openId === id){ setOpenId(null); setDetail(null); return }
@@ -51,12 +53,21 @@ export default function Notifications(){
     <div style={{display:'flex', flexDirection:'column', gap:16}}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
         <h1>Thông báo {active > 0 && <span style={{fontSize:12, background:'#DC2626', color:'#fff', padding:'2px 8px', borderRadius:999}}>{active} đang hoạt động</span>}</h1>
-        <div style={{display:'flex', gap:6}}>
-          {(['ALL','CRITICAL','HIGH'] as const).map(f=> (
-            <button key={f} onClick={()=> setFilter(f)} style={{padding:'6px 12px', borderRadius:999, border:'1px solid #E2E8E5', background: filter===f ? '#0B1412' : '#fff', color: filter===f ? '#fff' : '#000'}}>
-              {f === 'ALL' ? 'Tất cả' : f === 'CRITICAL' ? 'Nguy kịch' : 'Cảnh báo'}
-            </button>
-          ))}
+        <div style={{display:'flex', gap:12, flexWrap:'wrap'}}>
+          <div style={{display:'flex', gap:6}}>
+            {(['ALL','CRITICAL','HIGH'] as const).map(f=> (
+              <button key={f} onClick={()=> setFilter(f)} style={{padding:'6px 12px', borderRadius:999, border:'1px solid #E2E8E5', background: filter===f ? '#0B1412' : '#fff', color: filter===f ? '#fff' : '#000'}}>
+                {f === 'ALL' ? 'Tất cả' : f === 'CRITICAL' ? 'Nguy kịch' : 'Cảnh báo'}
+              </button>
+            ))}
+          </div>
+          <div style={{display:'flex', gap:6}}>
+            {(['ALL','ACTIVE','ACKNOWLEDGED','RESOLVED'] as const).map(s=> (
+              <button key={s} onClick={()=> setStFilter(s)} style={{padding:'6px 12px', borderRadius:999, border:'1px dashed #94A3B8', background: stFilter===s ? '#0F766E' : '#fff', color: stFilter===s ? '#fff' : '#000'}}>
+                {s === 'ALL' ? 'Mọi trạng thái' : s === 'ACTIVE' ? 'Đang hoạt động' : s === 'ACKNOWLEDGED' ? 'Đã nhận' : 'Đã xử lý'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

@@ -84,12 +84,23 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def rate_limit_mw(request: Request, call_next):
         # Sec51: reports/confirmations/uploads/api/ai/gee/route per user
+        import uuid
+
+        request_id = request.headers.get("X-Request-ID", uuid.uuid4().hex[:12])
         key = request.client.host if request.client else "anon"
         if not await _limiter.allow(key):
             return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded (Sec51)"})
         # Sec53 security: audit + input validation note
-        resp = await call_next(request)
+        start = time.time()
+        try:
+            resp = await call_next(request)
+        except Exception:
+            logger.exception("request %s %s failed rid=%s", request.method, request.url.path, request_id)
+            raise
+        ms = int((time.time() - start) * 1000)
         resp.headers["X-Content-Type-Options"] = "nosniff"
+        resp.headers["X-Request-ID"] = request_id
+        logger.info("%s %s %s %sms rid=%s", request.method, request.url.path, resp.status_code, ms, request_id)
         return resp
 
     from app.api.routes.health import router as health_router

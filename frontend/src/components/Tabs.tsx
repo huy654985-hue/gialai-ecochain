@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 
-export function Tabs({ tabs, defaultTab }: { tabs:string[]; defaultTab?:string }){
+export function Tabs({ tabs, defaultTab, onSelect }: { tabs:string[]; defaultTab?:string; onSelect?:(t:string)=>void }){
   const [active, setActive] = useState(defaultTab || tabs[0])
+  const pick = (t: string)=>{ setActive(t); onSelect?.(t) }
   return (
     <div>
       <div className="tabs" role="tablist">
         {tabs.map(t=>(
-          <button key={t} role="tab" aria-selected={active===t} onClick={()=>setActive(t)} className={active===t?'tab active':'tab'}>
+          <button key={t} role="tab" aria-selected={active===t} onClick={()=>pick(t)} className={active===t?'tab active':'tab'}>
             {active===t && <motion.div layoutId="tab-indicator" className="tab-indicator" transition={{ type:'spring', stiffness:380, damping:32 }} />}
             <span style={{position:'relative'}}>{t}</span>
           </button>

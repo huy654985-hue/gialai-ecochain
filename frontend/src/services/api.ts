@@ -10,7 +10,7 @@ export const api = {
   dashboard: ()=> req('/api/dashboard/green-economy').catch(()=> null),
   riskProfile: (id:string)=> req(`/api/risk/${id}`).catch(()=> ({ overall_score: 62, overall_level:'HIGH', breakdown:{}})),
   alerts: ()=> req('/api/alerts-unified').catch(()=> []),
-  alertList: ()=> req('/api/alerts').catch(()=> []),
+  alertList: (status?:string)=> req(`/api/alerts${status && status !== 'ALL' ? `?status=${status}` : ''}`).catch(()=> []),
   alertDetail: (id:string)=> req(`/api/alerts/${id}`),
   ackAlert: (id:string, actor = 'web-user')=> req(`/api/alerts/${id}/acknowledge`, { method:'POST', body: JSON.stringify({ actor_id: actor }) }),
   simWhatIf: (scenario:string, params:Record<string, unknown>)=> req('/api/simulate/what-if', { method:'POST', body: JSON.stringify({ scenario, params }) }),

@@ -1,0 +1,13 @@
+{
+  "name": "GIALAI EcoChain",
+  "short_name": "EcoChain",
+  "description": "Hệ thống cảnh báo sớm cháy rừng Gia Lai",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAF9",
+  "theme_color": "#0F766E",
+  "lang": "vi",
+  "icons": [
+    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

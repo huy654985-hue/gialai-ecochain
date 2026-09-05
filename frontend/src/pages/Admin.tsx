@@ -60,6 +60,15 @@ function FeedbackTriage(){
   )
 }
 
+function Stat({ label, value }: { label: string; value: any }){
+  return (
+    <div style={{border:'1px solid #E2E8E5', borderRadius:10, padding:'8px 10px'}}>
+      <div style={{fontSize:20, fontWeight:800}}>{value ?? '—'}</div>
+      <div style={{fontSize:11, color:'#64748B'}}>{label}</div>
+    </div>
+  )
+}
+
 function ConfigBoard({ geo }: { geo: any }){  return (
     <div style={{display:'grid', gap:8, marginTop:8}}>
       {geo.summary?.all_live && <div style={{fontSize:13, fontWeight:700, color:'#166534'}}>● Tất cả đã LIVE</div>}
@@ -84,11 +93,15 @@ function ConfigBoard({ geo }: { geo: any }){  return (
 export default function Admin(){
   const [gee, setGee] = useState<any>(null)
   const [geo, setGeo] = useState<any>(null)
+  const [cc, setCc] = useState<any>(null)
+  const [gov, setGov] = useState<any>(null)
   useEffect(()=>{
     // one-time purge: older builds stored a GEE key in the browser — remove it
     try{ localStorage.removeItem('ecogl_gee_key') }catch{}
     fetch(`${API}/api/earth-engine/status`).then(r=>r.json()).then(setGee).catch(()=> setGee({ connected:false }))
     fetch(`${API}/api/health/geospatial`).then(r=>r.json()).then(setGeo).catch(()=> setGeo(null))
+    fetch(`${API}/api/command-center`).then(r=>r.json()).then(setCc).catch(()=> setCc(null))
+    fetch(`${API}/api/governance`).then(r=>r.json()).then(setGov).catch(()=> setGov(null))
   },[])
   const saveMap = ()=>{
     const v=(document.getElementById('map_key2') as HTMLInputElement)?.value || ''
@@ -108,8 +121,21 @@ export default function Admin(){
       </div>
 
       <div className="card" style={{background:'#fff', border:'1px solid #E2E8E5', borderRadius:12, padding:16, marginTop:12}}>
-        <h3>1. Nhập API Bản đồ hiển thị (Map Tiles — cho Bản đồ trực tiếp)</h3>
-        <p style={{fontSize:12, color:'#64748B'}}>Dùng cho nền bản đồ, không phải dữ liệu vệ tinh phân tích. Để trống = OSM miễn phí. Có key thì dán vào đây hoặc ngay trên Bản đồ.</p>
+        <h3 style={{margin:'0 0 8px'}}>Trung tâm chỉ huy (live)</h3>
+        {!cc && !gov && <div style={{fontSize:13, color:'#64748B'}}>Đang tải...</div>}
+        {(cc || gov) && (
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(130px, 1fr))', gap:8}}>
+            <Stat label="Nguy kịch" value={cc?.active_critical} />
+            <Stat label="Rủi ro cao" value={cc?.high_risk} />
+            <Stat label="Chờ duyệt" value={gov?.pending_approvals} />
+            <Stat label="QĐ con người" value={gov?.human_decisions} />
+            <Stat label="QĐ AI" value={gov?.ai_decisions} />
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{background:'#fff', border:'1px solid #E2E8E5', borderRadius:12, padding:16, marginTop:12}}>
+        <h3>1. Nhập API Bản đồ hiển thị (Map Tiles — cho Bản đồ trực tiếp)</h3>        <p style={{fontSize:12, color:'#64748B'}}>Dùng cho nền bản đồ, không phải dữ liệu vệ tinh phân tích. Để trống = OSM miễn phí. Có key thì dán vào đây hoặc ngay trên Bản đồ.</p>
         <input id="map_key2" placeholder="MapTiler key hoặc URL style JSON (https://api.maptiler.com/...)" style={{width:'100%', padding:'8px', border:'1px solid #E2E8E5', borderRadius:8, marginTop:8}} />
         <button onClick={saveMap} style={{marginTop:8, background:'#0F766E', color:'#fff', border:0, padding:'8px 12px', borderRadius:999}}>Lưu & Tải lại bản đồ</button>
         <div style={{fontSize:11, color:'#64748B', marginTop:6}}>Vị trí file: trình duyệt localStorage <code>ecogl_map_key</code> · Hoặc set <code>VITE_MAP_STYLE</code> trong <code>frontend/.env</code></div>
