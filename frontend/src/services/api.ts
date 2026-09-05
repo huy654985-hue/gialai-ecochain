@@ -23,8 +23,23 @@ export const api = {
   nlWhatIf: (question:string)=> req('/api/what-if', { method:'POST', body: JSON.stringify({ question }) }),
   scenariosList: ()=> req('/api/scenarios').catch(()=> []),
   twinStates: (entity:string)=> req(`/api/digital-twin/states/${entity}`).catch(()=> null),
+  proposals: (status?:string)=> req(`/api/forest/proposals${status ? `?status=${status}` : ''}`).catch(()=> []),
+  proposalDetail: (id:string)=> req(`/api/forest/proposals/${id}`),
+  confirmProposal: (id:string, body:Record<string, unknown>)=> req(`/api/forest/proposals/${id}/community-confirm`, { method:'POST', body: JSON.stringify(body) }),
+  mobileReport: (body:Record<string, unknown>)=> req('/api/community/mobile-report', { method:'POST', body: JSON.stringify(body) }),
   forestHealth: ()=> Promise.resolve({ healthy:78.4, trend:2.8 }),
   geeStatus: ()=> req('/api/earth-engine/status').catch(()=> ({ connected:false, reason:'NOT_CONNECTED' })),
   incidents: ()=> req('/api/incidents').catch(()=>[]),
   mapSearch: (q:string)=> req(`/api/search/global?q=${q}`).catch(()=>null),
+}
+
+export async function uploadProposalPhoto(id: string, file: File, uploaderId: string, lat?: number, lng?: number) {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('uploader_id', uploaderId)
+  if(lat !== undefined) fd.append('lat', String(lat))
+  if(lng !== undefined) fd.append('lng', String(lng))
+  const r = await fetch(`${BASE}/api/forest/proposals/${id}/photos`, { method: 'POST', body: fd })
+  if(!r.ok) throw new Error(`${r.status} ${await r.text()}`)
+  return r.json()
 }

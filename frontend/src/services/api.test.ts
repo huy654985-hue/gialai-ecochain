@@ -93,4 +93,24 @@ describe('api client', () => {
     await expect(api.scenariosList()).resolves.toEqual([])
     await expect(api.twinStates('gia-lai')).resolves.toBeNull()
   })
+
+  it('proposals feed passes through, confirm posts vote', async () => {
+    const rows = [{ id: 'p1', status: 'PENDING', title: 'Khói' }]
+    mockFetch(true, rows)
+    await expect(api.proposals()).resolves.toEqual(rows)
+    mockFetch(true, { confirmation_id: 1, proposal_status: 'PENDING' })
+    await expect(api.confirmProposal('p1', { user_id: 'u1', confirmed: true })).resolves.toEqual({ confirmation_id: 1, proposal_status: 'PENDING' })
+  })
+
+  it('proposalDetail throws on 404', async () => {
+    mockFetch(false, { detail: 'Not found' }, 404)
+    await expect(api.proposalDetail('missing')).rejects.toThrow('404')
+  })
+
+  it('uploadProposalPhoto sends multipart and returns hash info', async () => {
+    const { uploadProposalPhoto } = await import('./api')
+    mockFetch(true, { photo_id: 1, is_duplicate: false, hash: 'abc' })
+    const f = new File([new Uint8Array([1,2,3])], 'a.jpg', { type: 'image/jpeg' })
+    await expect(uploadProposalPhoto('p1', f, 'u1')).resolves.toEqual({ photo_id: 1, is_duplicate: false, hash: 'abc' })
+  })
 })
