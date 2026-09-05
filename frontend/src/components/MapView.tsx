@@ -141,6 +141,43 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
     setSuggests([]); setSearch(props.ten_xa||'')
   }
 
+  // THEO DÕI một điểm nghi ngờ: bay tới vị trí cháy + kiểm tra Sentinel-2 + model đã chạy chưa
+  const watchFire = async (a:any)=>{
+    const map = mapRef.current
+    const flon = a.fire_coords?.[0], flat = a.fire_coords?.[1]
+    if(map && flon && flat){
+      try{ map.flyTo({ center:[flon, flat], zoom:12, duration:1200 }) }catch{}
+      try{
+        void new (maplibregl as any).Popup({ closeButton:true, maxWidth:'320px' })
+          .setLngLat([flon, flat] as any)
+          .setHTML(`<div style="font-family:Inter,sans-serif; min-width:220px"><b>🔥 Điểm nhiệt gần ${a.village || ''}</b><br/>${a.commune || ''} · cách ${a.distance_km ?? '?'}km<br/>🕒 ${a.acq_date || ''} · Tin cậy ${a.confidence || '?'}<br/>📍 ${Number(flat).toFixed(4)}, ${Number(flon).toFixed(4)}</div>`)
+          .addTo(map)
+      }catch{}
+    }
+    onSelectRef.current?.('watch', a.village || a.commune || '')
+    window.dispatchEvent(new CustomEvent('ecochain-select-area', { detail:{ area: a.village || a.commune } }))
+    setInfo({ layer:'watch', status:'ANALYZING', source:'FIRMS + Sentinel-2 + FireRisk', village:a.village, commune:a.commune,
+      fire:{ lon:flon, lat:flat, date:a.acq_date, distance_km:a.distance_km, confidence:a.confidence } })
+    let sentinel:any = { status:'UNAVAILABLE' }
+    try{
+      if(flon && flat){
+        const d=0.05
+        const r=await fetch(TILE_FIX(`${API}/api/v1/satellite/ndvi?bbox=${flon-d},${flat-d},${flon+d},${flat+d}`))
+        const j=await r.json()
+        sentinel={ status:j.status, source:j.source || 'Sentinel Hub', ndvi:j.ndvi, acquired:j.acquired || j.acquired_at, reason:j.reason }
+      }
+    }catch(e){ sentinel={ status:'UNAVAILABLE', reason:String(e) } }
+    let model:any = { status:'UNAVAILABLE' }
+    try{
+      const r=await fetch(TILE_FIX(`${API}/api/fire/risk?administrative_unit_id=${encodeURIComponent(a.commune || a.village || '')}&lat=${flat || 13.9}&lon=${flon || 108.3}`))
+      const j=await r.json()
+      model={ status:j.status, risk_score:j.risk_score, warning_level:j.warning_level, label:j.label, confidence:j.confidence }
+    }catch(e){ model={ status:'UNAVAILABLE', reason:String(e) } }
+    setInfo((prev:any)=> prev && prev.layer==='watch'
+      ? { ...prev, status: model.status && model.status !== 'UNAVAILABLE' ? model.status : 'CACHED', sentinel, model }
+      : prev)
+  }
+
   const tickerLines = [
     "15:02:10 - Trạm An Khê vừa gửi chỉ số Độ ẩm: 32% (Cảnh báo gió phơn)",
     "15:01:45 - Vệ tinh Sentinel cập nhật ảnh quét vùng rừng Ia Mơr",
@@ -719,7 +756,7 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
             {burning.map((a:any, i:number)=>(
               <div key={'b'+i} style={{display:'flex', justifyContent:'space-between', alignItems:'center', background:'#FEE2E2', padding:'6px 8px', borderRadius:8, fontSize:11}}>
                 <div><b>{a.village}</b> <span style={{color:'#64748B'}}>({a.commune})</span><br/><span style={{fontSize:10, color:'#334155'}}>{a.distance_km}km từ cháy · {a.acq_date || '2026-09-04'}</span></div>
-                <span style={{fontSize:10, padding:'2px 6px', borderRadius:999, background:'#DC2626', color:'#fff'}}>CHÁY</span>
+                <button onClick={()=> watchFire(a)} style={{fontSize:10, padding:'2px 6px', borderRadius:999, background:'#DC2626', color:'#fff', border:0, cursor:'pointer'}}>XEM</button>
               </div>
             ))}
           </div>}
@@ -728,7 +765,7 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
             {suspicious.map((a:any, i:number)=>(
               <div key={'s'+i} style={{display:'flex', justifyContent:'space-between', alignItems:'center', background:'#FEF3C7', padding:'6px 8px', borderRadius:8, fontSize:11}}>
                 <div><b>{a.village}</b> <span style={{color:'#64748B'}}>({a.commune})</span><br/><span style={{fontSize:10, color:'#334155'}}>{a.distance_km}km từ điểm nhiệt · {a.acq_date || '2026-09-04'}</span></div>
-                <span style={{fontSize:10, padding:'2px 6px', borderRadius:999, background:'#F59E0B', color:'#fff'}}>THEO DÕI</span>
+                <button onClick={()=> watchFire(a)} style={{fontSize:10, padding:'2px 6px', borderRadius:999, background:'#F59E0B', color:'#fff', border:0, cursor:'pointer'}}>THEO DÕI</button>
               </div>
             ))}
           </div>}
@@ -742,7 +779,8 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
       )}
       {(info || pixel) && (
         <div style={{position:'absolute', bottom:80, right:12, background:'rgba(255,255,255,0.96)', backdropFilter:'blur(12px)', borderRadius:12, padding:12, minWidth:280, maxWidth:360, boxShadow:'0 8px 24px rgba(0,0,0,0.12)'}}>
-          {info && <><div style={{fontWeight:700, fontSize:12}}>DỮ LIỆU VỆ TINH — {info.layer} <span style={{fontSize:10, padding:'2px 6px', borderRadius:999, background: info.status==='LIVE'?'#DCFCE7': info.status==='DEMO'?'#FEF3C7': info.status==='CONFIGURATION_REQUIRED'?'#FEF3C7':'#FEE2E2'}}>{info.status==='CONFIGURATION_REQUIRED' ? 'DEMO · Cache Vệ tinh Gia Lai' : info.status}</span></div><div style={{fontSize:12, marginTop:6, color:'#334155'}}>Nguồn: {info.status==='CONFIGURATION_REQUIRED' ? 'Esri/Sentinel Tile tĩnh · DEMO Cache' : (info.source || 'Sentinel-2')} · Ngày: {info.acquired || info.date || '—'} {info.status==='CONFIGURATION_REQUIRED' && <span style={{color:'#F59E0B'}}>· Fallback BaseMap</span>}</div>
+          {info && info.layer==='watch' && <><div style={{fontWeight:700, fontSize:12}}>👁 THEO DÕI — {info.village} <span style={{fontSize:10, padding:'2px 6px', borderRadius:999, background: info.status==='ANALYZING' ? '#FEF3C7' : '#DCFCE7'}}>{info.status === 'ANALYZING' ? 'ĐANG KIỂM TRA...' : info.status}</span></div><div style={{fontSize:12, marginTop:6, color:'#334155'}}>📍 Điểm cháy: {info.fire?.lat?.toFixed(4)}, {info.fire?.lon?.toFixed(4)} · cách {info.fire?.distance_km}km · {info.fire?.date} · tin cậy {info.fire?.confidence}</div><div style={{fontSize:12, marginTop:6}}>🛰️ Sentinel-2: {info.sentinel ? <><b>{info.sentinel.status}</b> · NDVI <b>{info.sentinel.ndvi ?? '—'}</b> · {info.sentinel.source}{info.sentinel.acquired ? ` · ${info.sentinel.acquired}` : ''}</> : 'Đang kiểm tra...'}</div><div style={{fontSize:12, marginTop:4}}>🤖 Model FireRisk: {info.model ? <><b>{info.model.status === 'UNAVAILABLE' ? 'CHƯA CHẠY' : info.model.status}</b>{info.model.risk_score !== undefined && <> · Rủi ro <b>{info.model.risk_score}/100</b> · CẤP <b>{info.model.warning_level}</b> · tin cậy {info.model.confidence}%</>}</> : 'Đang kiểm tra...'}</div></>}
+          {info && info.layer!=='watch' && <><div style={{fontWeight:700, fontSize:12}}>DỮ LIỆU VỆ TINH — {info.layer} <span style={{fontSize:10, padding:'2px 6px', borderRadius:999, background: info.status==='LIVE'?'#DCFCE7': info.status==='DEMO'?'#FEF3C7': info.status==='CONFIGURATION_REQUIRED'?'#FEF3C7':'#FEE2E2'}}>{info.status==='CONFIGURATION_REQUIRED' ? 'DEMO · Cache Vệ tinh Gia Lai' : info.status}</span></div><div style={{fontSize:12, marginTop:6, color:'#334155'}}>Nguồn: {info.status==='CONFIGURATION_REQUIRED' ? 'Esri/Sentinel Tile tĩnh · DEMO Cache' : (info.source || 'Sentinel-2')} · Ngày: {info.acquired || info.date || '—'} {info.status==='CONFIGURATION_REQUIRED' && <span style={{color:'#F59E0B'}}>· Fallback BaseMap</span>}</div>
           {info.layer==='smoke' && info.is_smoke && <div style={{marginTop:6, padding:'6px 8px', background:'#FEE2E2', borderRadius:8, color:'#991B1B', fontSize:11, fontWeight:700}}>🚨 {info.alert?.message}<br/><span style={{fontWeight:400}}>Độ tin cậy {(info.confidence*100).toFixed(0)}% · {info.reason}</span></div>}
           </>}
           {pixel && <><div style={{height:1, background:'#E2E8E5', margin:'8px 0'}}/><div style={{fontSize:12}}>NDVI: <b>{pixel.ndvi}</b></div></>}
