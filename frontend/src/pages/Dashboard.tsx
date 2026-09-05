@@ -3,11 +3,22 @@ import MapView from '../components/MapView'
 import WeatherCard from '../components/WeatherCard'
 import { StaggerContainer, StaggerItem } from '../motion/primitives'
 import { mockKPIs, mockAlerts } from '../services/mockProvider'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { LineChart, Line, ResponsiveContainer } from 'recharts'
 
 export default function Dashboard() {
   const [selected, setSelected] = useState<string|null>(null)
+  const nav = useNavigate()
+  useEffect(()=>{
+    // real commune/station name clicked on the map (MapView dispatches this)
+    const h = (e: any)=> setSelected(e.detail?.area || null)
+    window.addEventListener('ecochain-select-area', h)
+    return ()=> window.removeEventListener('ecochain-select-area', h)
+  },[])
+  const askAI = (area: string)=>{
+    window.dispatchEvent(new CustomEvent('ecochain-open-ai', { detail:{ query: `Phân tích nguy cơ cháy rừng tại ${area}, Gia Lai` } }))
+  }
   return (
     <div className="dash">
       <div className="welcome">
@@ -31,19 +42,19 @@ export default function Dashboard() {
       </StaggerContainer>
 
       <WeatherCard />
-      <MapView onSelect={()=> setSelected('Xã A')} />
+      <MapView onSelect={(_t, id)=> setSelected(id)} />
 
       {selected && (
         <div className="panel">
-          <h3>Xã A — Điểm EcoGL 72/100</h3>
+          <h3>{selected} — Điểm EcoGL 72/100</h3>
           <div className="panel-grid">
             <div>Rủi ro CAO</div><div>Rừng 81%</div><div>Sự cố 4</div><div>AI tin cậy 89%</div>
           </div>
           <div className="panel-actions">
-            <button className="btn primary">Xem chi tiết</button>
-            <button className="btn">Chạy phân tích AI</button>
-            <button className="btn">Xem kịch bản</button>
-            <button className="btn">Tạo nhiệm vụ</button>
+            <button className="btn primary" onClick={()=> nav('/forest')}>Xem chi tiết</button>
+            <button className="btn" onClick={()=> askAI(selected)}>Chạy phân tích AI</button>
+            <button className="btn" onClick={()=> nav('/what-if')}>Xem kịch bản</button>
+            <button className="btn" onClick={()=> nav('/missions')}>Tạo nhiệm vụ</button>
           </div>
         </div>
       )}

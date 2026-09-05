@@ -60,7 +60,8 @@ const STATIONS = [
 export default function MapView({ onSelect }: { onSelect?: (type:string, id:string)=>void }) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
-  void onSelect
+  const onSelectRef = useRef(onSelect)
+  onSelectRef.current = onSelect
   const [_base] = useState<'streets'|'satellite'>('streets')
   void _base
   // Priority 1: Default Esri World Imagery (ổn định nhất) — không google_s
@@ -111,6 +112,7 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
     const base = `<div style="font-family:Inter,sans-serif"><b>${f.ten_xa||''}</b><br/><span style="font-size:11px;color:#64748B">mã ${f.ma_xa||''} · ${f.dtich_km2||''} km² · dân số ${f.dan_so||''}</span>`
     const popup = new (maplibregl as any).Popup({ closeButton:true, maxWidth:'320px' }).setLngLat(lngLat).setHTML(base + `<br/>⏳ AI vệ tinh đang chẩn đoán...</div>`).addTo(map)
     window.dispatchEvent(new CustomEvent('ecochain-select-area', { detail:{ area: f.ten_xa } }))
+    onSelectRef.current?.('commune', f.ten_xa || ('ma-' + f.ma_xa))
     try{
       const r = await fetch(TILE_FIX(`${API}/api/fire/risk?administrative_unit_id=${encodeURIComponent(f.ten_xa||('ma-'+f.ma_xa))}&lat=${lngLat[1].toFixed(4)}&lon=${lngLat[0].toFixed(4)}`))
       const j = await r.json()
@@ -492,6 +494,7 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
             .setHTML(`<div style="font-family:Inter,sans-serif; min-width:220px"><b>${st.name}</b><br/>Cấp dự báo <b>CẤP ${st.level}</b> · Risk ${st.score}/100<br/>Nhiệt ${(st.temp + jitter.temp).toFixed(1)}°C · Ẩm ${(st.humidity + jitter.hum).toFixed(0)}% · Gió ${(st.wind + jitter.wind).toFixed(1)} km/h<br/><span style="font-size:11px; color:#64748B">Cập nhật: ${now.toLocaleTimeString('vi-VN')} · Nguồn: Sentinel-2 / FIRMS ${st.type.includes('Khẩn cấp')?'· LIVE':''}</span></div>`)
             .addTo(map)
           window.dispatchEvent(new CustomEvent('ecochain-select-area', { detail:{ area: st.name, level: st.level }}))
+          onSelectRef.current?.('station', st.name)
         })
       })
       // Vùng trọng điểm — marker cam ⚠, phân biệt điểm từng cháy (đen/vàng)

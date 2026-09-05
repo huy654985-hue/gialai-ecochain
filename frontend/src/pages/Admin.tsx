@@ -1,22 +1,27 @@
+import { useEffect, useState } from 'react'
 import ModelSwitcher from '../components/ModelSwitcher'
+
+const API = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'
+
+// NOTE (security): service-account private keys must NEVER touch the browser.
+// They live only in backend env / secret manager. This page therefore has no
+// key input — it only shows the live backend GEE status + setup instructions.
 export default function Admin(){
-  const saveGEE = ()=>{
-    const pid=(document.getElementById('gee_pid') as HTMLInputElement)?.value
-    const svc=(document.getElementById('gee_svc') as HTMLInputElement)?.value
-    const key=(document.getElementById('gee_key') as HTMLTextAreaElement)?.value
-    if(pid) localStorage.setItem('ecogl_gee_project', pid)
-    if(svc) localStorage.setItem('ecogl_gee_svc', svc)
-    if(key) localStorage.setItem('ecogl_gee_key', key)
-    alert('Đã lưu tạm vào trình duyệt. Để backend dùng thực, dán vào file backend/.env rồi restart uvicorn.')
-  }
+  const [gee, setGee] = useState<any>(null)
+  useEffect(()=>{
+    // one-time purge: older builds stored a GEE key in the browser — remove it
+    try{ localStorage.removeItem('ecogl_gee_key') }catch{}
+    fetch(`${API}/api/earth-engine/status`).then(r=>r.json()).then(setGee).catch(()=> setGee({ connected:false }))
+  },[])
   const saveMap = ()=>{
     const v=(document.getElementById('map_key2') as HTMLInputElement)?.value || ''
     localStorage.setItem('ecogl_map_key', v); localStorage.setItem('ecogl_map_style', v); location.reload()
   }
+  const connected = gee?.connected === true
   return (
     <div className="page">
       <h1>Quản trị — Người dùng · Vai trò · Nguồn dữ liệu · Agent · Sức khỏe hệ thống</h1>
-      <div className="health"><div>Cơ sở dữ liệu ● Trực tuyến</div><div>API ● Trực tuyến</div><div>GEE ● Chưa cấu hình (cần key)</div><div>AI Services ● Trực tuyến</div></div>
+      <div className="health"><div>Cơ sở dữ liệu ● Trực tuyến</div><div>API ● Trực tuyến</div><div>GEE ● {gee ? (connected ? 'Đã kết nối LIVE' : 'Chưa cấu hình (cần key ở backend)') : 'Đang kiểm tra...'}</div><div>AI Services ● Trực tuyến</div></div>
       <div className="agents"><div>AGENT RỪNG ● TRỰC TUYẾN 99.1% <span style={{fontSize:10, padding:'2px 6px', borderRadius:999, background:'#FEF3C7'}}>DEMO DATA</span></div><div>AGENT THIÊN TAI ● TRỰC TUYẾN</div><div>AGENT LOGISTICS ● TRỰC TUYẾN</div></div>
 
       <div className="card" style={{background:'#fff', border:'1px solid #E2E8E5', borderRadius:12, padding:16, marginTop:12}}>
@@ -28,23 +33,20 @@ export default function Admin(){
       </div>
 
       <div className="card" style={{background:'#FFF7ED', border:'1px solid #FDBA74', borderRadius:12, padding:16, marginTop:12}}>
-        <h3>2. Nhập API Vệ tinh EE Sentinel (Google Earth Engine — cho phân tích NDVI/Rừng)</h3>
-        <p style={{fontSize:12, color:'#7C2D12'}}>Đây là <b>backend</b>, không phải bản đồ nền. Cần Service Account của Google Cloud. <a href="https://code.earthengine.google.com" target="_blank">Lấy tại code.earthengine.google.com</a></p>
-        <div style={{display:'grid', gap:8, marginTop:8}}>
-          <input id="gee_pid" placeholder="GEE_PROJECT_ID (ví dụ: ecogl-gialai)" style={{padding:'8px', border:'1px solid #E2E8E5', borderRadius:8}} />
-          <input id="gee_svc" placeholder="GEE_SERVICE_ACCOUNT (xxx@xxx.iam.gserviceaccount.com)" style={{padding:'8px', border:'1px solid #E2E8E5', borderRadius:8}} />
-          <textarea id="gee_key" placeholder="GEE_PRIVATE_KEY (-----BEGIN PRIVATE KEY----- ...)" rows={3} style={{padding:'8px', border:'1px solid #E2E8E5', borderRadius:8}} />
+        <h3>2. Vệ tinh EE Sentinel (Google Earth Engine — cho phân tích NDVI/Rừng)</h3>
+        <p style={{fontSize:12, color:'#7C2D12'}}>Đây là cấu hình <b>backend</b>, không phải bản đồ nền. Cần Service Account của Google Cloud. <a href="https://code.earthengine.google.com" target="_blank">Lấy tại code.earthengine.google.com</a></p>
+        <div style={{fontSize:13, marginTop:8}}>Trạng thái backend: <b>{gee ? (connected ? '● LIVE đã kết nối' : '○ chưa cấu hình — đang dùng DEMO DATA') : 'Đang kiểm tra...'}</b></div>
+        <div style={{fontSize:12, color:'#DC2626', marginTop:8, background:'#fff', border:'1px solid #FECACA', borderRadius:8, padding:10}}>
+          ⛔ Không bao giờ dán private key vào trình duyệt hay bất kỳ ô nhập web nào — key chỉ tồn tại trong biến môi trường backend / secret manager.
         </div>
-        <button onClick={saveGEE} style={{marginTop:8, background:'#0B1412', color:'#fff', border:0, padding:'8px 12px', borderRadius:999}}>Lưu tạm (trình duyệt)</button>
         <div style={{fontSize:12, marginTop:10, background:'#fff', border:'1px solid #E2E8E5', borderRadius:8, padding:10}}>
-          <b>Để bật vệ tinh thực (khuyến nghị):</b><br/>
-          1. Mở file <code>C:\Users\danhu\Documents\Default Project\backend\.env</code> (tạo từ <code>.env.example</code>)<br/>
-          2. Dán 3 dòng:<br/>
-          <code>GEE_PROJECT_ID=ecogl-gialai</code><br/>
-          <code>GEE_SERVICE_ACCOUNT=xxx@xxx.iam.gserviceaccount.com</code><br/>
+          <b>Để bật vệ tinh thực (trên máy chủ backend):</b><br/>
+          1. Mở file <code>backend/.env</code> (tạo từ <code>.env.example</code>)<br/>
+          2. Điền:<br/>
+          <code>GEE_PROJECT_ID=...</code><br/>
+          <code>GEE_SERVICE_ACCOUNT=...@....iam.gserviceaccount.com</code><br/>
           <code>GEE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."</code><br/>
-          3. Restart backend: tắt uvicorn (PID 14188) → <code>uvicorn app.main:app --reload --port 8000</code><br/>
-          4. Kiểm tra: <code>http://127.0.0.1:8000/api/earth-engine/status</code> phải trả <code>{`{"connected":true}`}</code> thay vì <code>NOT_CONFIGURED</code><br/>
+          3. Restart backend rồi kiểm tra <code>/api/earth-engine/status</code> phải trả <code>{`{"connected":true}`}</code><br/>
           <span style={{color:'#DC2626'}}>Không commit file .env lên Git!</span>
         </div>
       </div>

@@ -87,4 +87,10 @@ describe('api client', () => {
     const r = await api.nlWhatIf('Mưa lớn 30% thì sao?')
     expect(r.params.rainfall).toBe('+30%')
   })
+
+  it('scenariosList falls back to [] and twinStates to null', async () => {
+    mockFetch(false, {}, 500)
+    await expect(api.scenariosList()).resolves.toEqual([])
+    await expect(api.twinStates('gia-lai')).resolves.toBeNull()
+  })
 })

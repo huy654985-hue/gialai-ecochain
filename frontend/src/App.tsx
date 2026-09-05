@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, MotionConfig } from 'framer-motion'
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import AppShell from './components/AppShell'
 import { PageTransition } from './motion/primitives'
 const EcoMap = lazy(()=> import('./pages/EcoMap'))
@@ -32,6 +32,16 @@ function AIAssistant(){
   const [result, setResult] = useState<any>(null)
   const [showInspector, setShowInspector] = useState(false)
   const API = (import.meta as any).env?.VITE_API_BASE || 'https://backend-delta-flame-42.vercel.app'
+
+  // allow other pages (e.g. Dashboard) to open the assistant with a preset query
+  useEffect(()=>{
+    const h = (e: any)=>{
+      if(e.detail?.query) setQ(e.detail.query)
+      setOpen(true)
+    }
+    window.addEventListener('ecochain-open-ai', h)
+    return ()=> window.removeEventListener('ecochain-open-ai', h)
+  },[])
   
   const suggestions = [
     "Phân tích nguy cơ cháy rừng",

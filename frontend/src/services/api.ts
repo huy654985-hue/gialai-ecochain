@@ -21,6 +21,8 @@ export const api = {
   scenariosCompare: (ids:string[])=> req('/api/scenarios/compare', { method:'POST', body: JSON.stringify({ ids }) }),
   simCascade: (scenario:string)=> req('/api/simulate/cascade', { method:'POST', body: JSON.stringify({ scenario }) }),
   nlWhatIf: (question:string)=> req('/api/what-if', { method:'POST', body: JSON.stringify({ question }) }),
+  scenariosList: ()=> req('/api/scenarios').catch(()=> []),
+  twinStates: (entity:string)=> req(`/api/digital-twin/states/${entity}`).catch(()=> null),
   forestHealth: ()=> Promise.resolve({ healthy:78.4, trend:2.8 }),
   geeStatus: ()=> req('/api/earth-engine/status').catch(()=> ({ connected:false, reason:'NOT_CONNECTED' })),
   incidents: ()=> req('/api/incidents').catch(()=>[]),
