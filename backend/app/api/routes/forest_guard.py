@@ -11,6 +11,7 @@ from app.services.agents.forest_guard import get_forest_guard_agent
 from app.services.earth_engine.service import EEQueryParams, get_earth_engine_service
 from app.services.pipeline.pipeline import approve_proposal, reject_proposal
 from app.core.demo_mode import tag_data_origin
+from app.core.security import get_current_user
 
 router = APIRouter(prefix="/agents/forest-guard", tags=["ForestGuard"])
 
@@ -80,14 +81,14 @@ def get_proposal(proposal_id: str, db: Session = Depends(get_db)):
     return {"id": p.id, "status": p.status, "title": p.title, "payload": json.loads(p.payload) if p.payload else None, "origin": tag_data_origin()}
 
 @router.post("/proposals/{proposal_id}/approve")
-def approve(proposal_id: str, body: ApprovalRequest, db: Session = Depends(get_db)):
+def approve(proposal_id: str, body: ApprovalRequest, db: Session = Depends(get_db), user=Depends(get_current_user)):
     try:
         return approve_proposal(db, proposal_id, verified_by=body.verified_by)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 @router.post("/proposals/{proposal_id}/reject")
-def reject(proposal_id: str, body: ApprovalRequest, db: Session = Depends(get_db)):
+def reject(proposal_id: str, body: ApprovalRequest, db: Session = Depends(get_db), user=Depends(get_current_user)):
     try:
         return reject_proposal(db, proposal_id, reviewed_by=body.verified_by, reason=body.reason or "No reason")
     except Exception as exc:

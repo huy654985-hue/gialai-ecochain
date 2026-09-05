@@ -132,9 +132,12 @@ def test_api_flow():
     assert len(r.json()) >= 1
     assert r.json()[0]["status"] == ProposalStatus.PENDING.value
 
-    # approve → verified
+    # approve → verified (official action: requires login)
+    from tests.helpers import auth_headers
+    h = auth_headers(client)
     pid = r.json()[0]["id"]
-    r = client.post(f"/api/agents/forest-guard/proposals/{pid}/approve", json={"verified_by": "admin-test"})
+    assert client.post(f"/api/agents/forest-guard/proposals/{pid}/approve", json={"verified_by": "admin-test"}).status_code == 401
+    r = client.post(f"/api/agents/forest-guard/proposals/{pid}/approve", json={"verified_by": "admin-test"}, headers=h)
     assert r.status_code == 200
     assert r.json()["status"] == "VERIFIED"
 

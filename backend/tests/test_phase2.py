@@ -123,8 +123,11 @@ def test_phase2_flow():
     r = client.post(f"/api/forest/proposals/{pid2}/community-confirm", json={"user_id": "userA", "confirmed": True})
     assert r.status_code == 400
 
-    #  Admin verify override
-    r = client.post(f"/api/forest/proposals/{pid2}/verify", json={"verified_by": "admin1"})
+    #  Admin verify override (official action: requires login)
+    from tests.helpers import auth_headers
+    h = auth_headers(client)
+    assert client.post(f"/api/forest/proposals/{pid2}/verify", json={"verified_by": "admin1"}).status_code == 401
+    r = client.post(f"/api/forest/proposals/{pid2}/verify", json={"verified_by": "admin1"}, headers=h)
     assert r.status_code == 200
     assert r.json()["status"] == ProposalStatus.OFFICIAL_VERIFIED.value
 

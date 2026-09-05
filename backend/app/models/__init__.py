@@ -17,6 +17,7 @@ from app.models.data_fabric import DataSource, DataProvenanceRecord, DataLineage
 from app.models.twin import TwinState, Scenario, ScenarioScore, InvestmentPlan, DataGap
 from app.models.fire import OfficialFireWarning, AIFirePrediction
 from app.models.user import User
+from app.models.refresh_token import RefreshToken
 
 __all__ = [
     "AdministrativeUnit",
@@ -45,4 +46,5 @@ __all__ = [
     "TwinState","Scenario","ScenarioScore","InvestmentPlan","DataGap",
     "OfficialFireWarning","AIFirePrediction",
     "User",
+    "RefreshToken",
 ]

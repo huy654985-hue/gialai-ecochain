@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.enums import ProposalStatus, SatelliteSource
 from app.core.demo_mode import tag_data_origin
+from app.core.security import get_current_user
 from app.database import get_db
 from app.models.administrative import AdministrativeUnit
 from app.models.community import CommunityConfirmation, PhotoEvidence, FieldVerificationTask
@@ -153,7 +154,7 @@ def get_proposal(proposal_id: str, db: Session = Depends(get_db)):
     }
 
 @router.post("/proposals/{proposal_id}/verify")
-def verify_proposal(proposal_id: str, body: ApprovalRequest, db: Session = Depends(get_db)):
+def verify_proposal(proposal_id: str, body: ApprovalRequest, db: Session = Depends(get_db), user=Depends(get_current_user)):
     """Sec 20 OFFICIAL_VERIFIED — admin override."""
     p = db.get(DataProposal, proposal_id)
     if not p:
@@ -176,7 +177,7 @@ def verify_proposal(proposal_id: str, body: ApprovalRequest, db: Session = Depen
         raise HTTPException(status_code=400, detail=str(exc))
 
 @router.post("/proposals/{proposal_id}/reject")
-def reject_proposal_route(proposal_id: str, body: ApprovalRequest, db: Session = Depends(get_db)):
+def reject_proposal_route(proposal_id: str, body: ApprovalRequest, db: Session = Depends(get_db), user=Depends(get_current_user)):
     from app.services.pipeline.pipeline import reject_proposal
     try:
         result = reject_proposal(db, proposal_id, reviewed_by=body.verified_by, reason=body.reason or "Rejected")

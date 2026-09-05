@@ -12,6 +12,7 @@ from app.services.audit import audit_log
 from app.services.event_bus import publish
 from app.services.impact_cascade import cascade
 from app.services.priority_engine import priority
+from app.core.security import get_current_user, require_role
 
 router=APIRouter(tags=["Master"])
 
@@ -101,7 +102,7 @@ def list_approvals(db:Session=Depends(get_db)):
     return [{"id": a.id, "plan_id": a.plan_id, "action": a.action, "status": a.status} for a in db.query(Approval).limit(20).all()]
 
 @router.post("/approvals/{approval_id}/approve")
-def approve(approval_id:str, body:dict, db:Session=Depends(get_db)):
+def approve(approval_id:str, body:dict, db:Session=Depends(get_db), user=Depends(get_current_user)):
     a=db.get(Approval, approval_id)
     if not a: raise HTTPException(404, "Approval not found")
     a.status="APPROVED"; a.approved_by=body.get("approved_by","admin"); a.reason=body.get("reason","approved")
@@ -112,7 +113,7 @@ def approve(approval_id:str, body:dict, db:Session=Depends(get_db)):
     return {"id": a.id, "status": a.status}
 
 @router.post("/approvals/{approval_id}/reject")
-def reject(approval_id:str, body:dict, db:Session=Depends(get_db)):
+def reject(approval_id:str, body:dict, db:Session=Depends(get_db), user=Depends(get_current_user)):
     a=db.get(Approval, approval_id)
     if not a: raise HTTPException(404, "Not found")
     a.status="REJECTED"; db.commit(); return {"id": a.id, "status": a.status}
@@ -132,7 +133,7 @@ def list_models(db:Session=Depends(get_db)):
     return [{"id": m.id, "model": m.model, "version": m.version, "deployment_status": m.deployment_status} for m in db.query(ModelRegistryEntry).limit(20).all()]
 
 @router.post("/models/rollback")
-def rollback(body:dict, db:Session=Depends(get_db)):
+def rollback(body:dict, db:Session=Depends(get_db), admin=Depends(require_role("admin"))):
     return {"from": body.get("from","v2.0"), "to": body.get("to","v1.8"), "status":"rolled back"}
 
 # Governance Sec97-99
@@ -171,7 +172,7 @@ def activity_stream(db:Session=Depends(get_db)):
 
 # Kill switch Sec108-110 + health
 @router.post("/kill-switch")
-def kill_switch(body:dict):
+def kill_switch(body:dict, admin=Depends(require_role("admin"))):
     from app.services.orchestrator import set_enabled
     if body.get("global"):
         for a in ["ForestGuard","DisasterGuard","CarbonGuard","EUDRGuard"]:

@@ -1,7 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from typing import Optional
 from app.services.model_switcher import list_models, switch, get_mode
 from app.core.config import get_settings
+from app.core.security import require_role
 
 router=APIRouter(tags=["ModelSwitch"])
 
@@ -12,7 +13,7 @@ def list_switch():
     return list_models()
 
 @router.post("/models/switch")
-def do_switch(body:dict):
+def do_switch(body:dict, admin=Depends(require_role("admin"))):
     agent=body.get("agent"); version=body.get("version")
     if not agent or not version: return {"error":"agent and version required"}
     v=switch(agent, version)
@@ -25,7 +26,7 @@ def get_mode_api():
     return {"mode": mode, "demo": mode=="DEMO"}
 
 @router.post("/mode")
-def set_mode_api(body:dict):
+def set_mode_api(body:dict, admin=Depends(require_role("admin"))):
     global _mode_override
     mode=body.get("mode","DEMO")
     _mode_override=mode

@@ -12,6 +12,8 @@ def setup():
     return TestClient(app)
 def test_phase9():
     c=setup()
+    from tests.helpers import auth_headers
+    h = auth_headers(c)
     # Twin states Sec3
     r=c.post("/api/digital-twin/state", json={"entity_type":"Forest","entity_id":"f1","state":"CURRENT","payload":{"forest":92}})
     assert r.status_code==200
@@ -77,7 +79,8 @@ def test_phase9():
     # Collaborative Sec71
     assert c.post(f"/api/scenario/{sid}/comment", json={"comment":"test"}).status_code==200
     # Decision record Sec73
-    assert c.post("/api/decision/record", json={"decision":"approve","scenario":sid}).status_code==200
+    assert c.post("/api/decision/record", json={"decision":"approve","scenario":sid}).status_code==401
+    assert c.post("/api/decision/record", json={"decision":"approve","scenario":sid}, headers=h).status_code==200
     # Outcome Sec74
     assert c.get(f"/api/outcome/{sid}").status_code==200
     # Trade-off Sec80 no-action Sec79

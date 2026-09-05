@@ -9,6 +9,7 @@ from app.models.data_fabric import DataSource, DataProvenanceRecord, DataLineage
 from app.models.administrative import AdministrativeUnit
 from app.models.risk import Incident, Alert
 from app.core.demo_mode import tag_data_origin
+from app.core.security import require_role
 
 router=APIRouter(tags=["Phase8"])
 
@@ -169,13 +170,13 @@ def evidence_hash(body:dict):
 
 # Governance Sec66-69 delegation
 @router.post("/admin/delegate")
-def delegate(body:dict, db:Session=Depends(get_db)):
+def delegate(body:dict, db:Session=Depends(get_db), admin=Depends(require_role("admin"))):
     from app.services.audit import audit_log
     audit_log(db, action="DELEGATE", resource_type="admin", resource_id=body.get("to"), detail=json.dumps(body)); db.commit()
     return {"from": body.get("from"), "to": body.get("to"), "until": body.get("until"), "scope": body.get("scope")}
 
 @router.post("/admin/emergency-delegate")
-def emergency_delegate(body:dict, db:Session=Depends(get_db)):
+def emergency_delegate(body:dict, db:Session=Depends(get_db), admin=Depends(require_role("admin"))):
     return {"emergency_coordinator": body.get("to"), "expires": "24h", "temporary": True}
 
 # AI Governance Sec70-72 + post-incident Sec73

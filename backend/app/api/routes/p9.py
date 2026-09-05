@@ -9,6 +9,7 @@ from app.models.twin import TwinState, Scenario, ScenarioScore, InvestmentPlan
 from app.services.what_if import what_if, scenario_agent, parse_nl
 from app.services.future_models import forest_future, carbon_future, agri_future, logistics_future, pareto, infrastructure_sim, investment_optimizer
 from app.core.demo_mode import tag_data_origin
+from app.core.security import get_current_user, require_role
 
 router=APIRouter(tags=["Phase9"])
 
@@ -197,7 +198,7 @@ def shadow(body:dict):
     return {"production": "v1.0", "candidate": "v1.1", "shadow": True, "affects_decision": False}
 
 @router.post("/model/rollback")
-def rollback_model(body:dict):
+def rollback_model(body:dict, admin=Depends(require_role("admin"))):
     return {"from": body.get("from","v2.0"), "to": body.get("to","v1.8"), "status":"rolled back"}
 
 # Reproducible Sec68 + versioning Sec69 + collaborative Sec71-73
@@ -212,7 +213,7 @@ def comment_scenario(sid:str, body:dict, db:Session=Depends(get_db)):
     return {"scenario": sid, "comment": body.get("comment"), "evidence": body.get("evidence")}
 
 @router.post("/decision/record")
-def decision_record(body:dict):
+def decision_record(body:dict, user=Depends(get_current_user)):
     return {"decision": body.get("decision"), "chosen": body.get("scenario"), "reason": body.get("reason"), "approver": body.get("approver"), "timestamp": "2026-09-02"}
 
 # Outcome Sec74-75 + leaderboard Sec76 + future score Sec77

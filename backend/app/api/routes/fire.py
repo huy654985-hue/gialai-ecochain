@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models.fire import OfficialFireWarning, AIFirePrediction
 from app.services.fire_risk_engine import fire_risk_engine, score_to_level
 from app.core.enums import FireWarningLevel, FIRE_WARNING_LABELS
+from app.core.security import get_current_user
 import json, time
 
 router=APIRouter(tags=["Fire"])
@@ -18,7 +19,7 @@ def list_warnings(administrative_unit_id: Optional[str]=Query(default=None), db:
     return [{"id": w.id, "level": w.level, "label": FIRE_WARNING_LABELS.get(FireWarningLevel(w.level), w.level) if w.level in [e.value for e in FireWarningLevel] else w.level, "source": w.source, "issued_at": str(w.issued_at), "scope": w.scope} for w in warns]
 
 @router.post("/fire/warnings")
-def create_warning(body:dict, db:Session=Depends(get_db)):
+def create_warning(body:dict, db:Session=Depends(get_db), user=Depends(get_current_user)):
     # Admin creates official warning Sec1
     lvl=body.get("level")
     if lvl not in [e.value for e in FireWarningLevel]: raise HTTPException(400, "Invalid level I-V")

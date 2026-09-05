@@ -12,6 +12,8 @@ def setup():
     return TestClient(app)
 def test_phase8():
     c=setup()
+    from tests.helpers import auth_headers
+    h = auth_headers(c)
     # Data Fabric Sec2-3
     assert c.get("/api/data-fabric").status_code==200
     assert len(c.get("/api/data-sources").json())>=4
@@ -58,7 +60,8 @@ def test_phase8():
     assert c.post("/api/community/mobile-report", json={"user_id":"u1"}).status_code==200
     assert c.post("/api/evidence/hash", json={"content":"test"}).status_code==200
     # Delegation Sec68-69
-    assert c.post("/api/admin/delegate", json={"from":"admin1","to":"admin2","scope":"commune"}).status_code==200
+    assert c.post("/api/admin/delegate", json={"from":"admin1","to":"admin2","scope":"commune"}).status_code==401
+    assert c.post("/api/admin/delegate", json={"from":"admin1","to":"admin2","scope":"commune"}, headers=h).status_code==200
     # AI governance Sec70
     assert c.get("/api/ai/governance").status_code==200
     assert c.post("/api/incident-review", json={"incident_id":"inc1"}).status_code==200

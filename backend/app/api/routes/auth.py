@@ -1,4 +1,4 @@
-"""Auth routes — register / login (OAuth2 password flow) / me.
+"""Auth routes — register / login (OAuth2 password flow) / me / refresh / logout.
 
 Bootstrap rule: the very first registered user becomes `admin`, the rest
 `viewer`. Set a strong `SECRET_KEY` in production.
@@ -10,8 +10,11 @@ from sqlalchemy.orm import Session
 
 from app.core.security import (
     create_access_token,
+    create_refresh_token,
     get_current_user,
     hash_password,
+    revoke_user_tokens,
+    rotate_refresh_token,
     verify_password,
 )
 from app.database import get_db
@@ -27,7 +30,12 @@ class RegisterBody(BaseModel):
 
 class TokenOut(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+
+
+class RefreshBody(BaseModel):
+    refresh_token: str
 
 
 class UserOut(BaseModel):
@@ -58,7 +66,35 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
         )
     if not user.is_active:
         raise HTTPException(status_code=403, detail="User is disabled")
-    return TokenOut(access_token=create_access_token(user.username))
+    return TokenOut(
+        access_token=create_access_token(user.username),
+        refresh_token=create_refresh_token(user.username, db),
+    )
+
+
+@router.post("/auth/refresh", response_model=TokenOut)
+def refresh(body: RefreshBody, db: Session = Depends(get_db)):
+    access, new_refresh = rotate_refresh_token(body.refresh_token, db)
+    return TokenOut(access_token=access, refresh_token=new_refresh)
+
+
+@router.post("/auth/logout")
+def logout(body: RefreshBody, db: Session = Depends(get_db)):
+    from jose import JWTError, jwt
+
+    from app.core.config import get_settings
+
+    try:
+        username = jwt.decode(
+            body.refresh_token,
+            get_settings().secret_key,
+            algorithms=[get_settings().auth_algorithm],
+        ).get("sub")
+    except JWTError:
+        username = None
+    if username:
+        revoke_user_tokens(username, db)
+    return {"status": "logged out"}
 
 
 @router.get("/auth/me", response_model=UserOut)

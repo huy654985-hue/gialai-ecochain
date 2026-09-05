@@ -47,7 +47,10 @@ def test_phase7():
     appr=master_agent.request_human_approval(db, pid2, "CREATE_OFFICIAL_ALERT")
     db.close()
     assert c.get("/api/approvals").status_code==200
-    assert c.post(f"/api/approvals/{appr.id}/approve", json={"approved_by":"admin","reason":"ok"}).status_code==200
+    from tests.helpers import auth_headers
+    h = auth_headers(c)
+    assert c.post(f"/api/approvals/{appr.id}/approve", json={"approved_by":"admin","reason":"ok"}).status_code==401
+    assert c.post(f"/api/approvals/{appr.id}/approve", json={"approved_by":"admin","reason":"ok"}, headers=h).status_code==200
     # missions
     r=c.post("/api/missions", json={"goal":"Forest Protection Mission","scope":"Province"})
     assert r.status_code==200
@@ -59,8 +62,9 @@ def test_phase7():
     # command center
     assert c.get("/api/command-center").status_code==200
     assert c.get("/api/activity-stream").status_code==200
-    # kill switch global
-    r=c.post("/api/kill-switch", json={"global": True})
+    # kill switch global (admin only)
+    assert c.post("/api/kill-switch", json={"global": True}).status_code==401
+    r=c.post("/api/kill-switch", json={"global": True}, headers=h)
     assert r.status_code==200
     # manual mode still allows reads
     assert c.get("/api/forest/areas").status_code==200
