@@ -54,7 +54,7 @@ async def fire_risk(administrative_unit_id: str = Query(...), lat: float = Query
         from app.services.weather_service import fetch_current
         w=await fetch_current(lat, lon)
         weather={"temperature": w.get("current",{}).get("temperature",30), "humidity": w.get("humidity",60), "rainfall": w.get("current",{}).get("precipitation",2), "wind_speed": w.get("current",{}).get("windspeed",12)}
-    except: weather={"temperature":32, "humidity":35, "rainfall":1, "wind_speed":18}
+    except: weather={}  # flagged missing by analyze(), never fake values
     # terrain
     terrain={}
     try:
@@ -63,7 +63,7 @@ async def fire_risk(administrative_unit_id: str = Query(...), lat: float = Query
         import random, hashlib
         rng=random.Random(int(hashlib.sha256(f"{lat:.1f}{lon:.1f}".encode()).hexdigest()[:8],16))
         terrain={"elevation": rng.uniform(100,800), "slope": rng.uniform(5,30)}
-    except: terrain={"slope":24}
+    except: terrain={}  # flagged missing by analyze()
     # FIRMS
     hotspots=[]
     try:
