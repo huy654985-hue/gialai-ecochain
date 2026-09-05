@@ -1,21 +1,22 @@
 import { NavLink } from 'react-router-dom'
 import { Map, Flame, FileCheck, Truck, Layers, Users, Settings, HelpCircle, X } from 'lucide-react'
 import FireRiskGauge from './FireRiskGauge'
-
-const groups = [
-  { label:'CHÍNH', items:[
-    { to:'/', label:'Eco Map', icon: Map },
-    { to:'/events', label:'Event Intelligence', icon: Flame },
-    { to:'/what-if', label:'What-if Lab', icon: Layers },
-    { to:'/missions', label:'Missions', icon: FileCheck },
-  ]},
-  { label:'', items:[
-    { to:'/community', label:'Cộng đồng', icon: Users },
-    { to:'/twin', label:'Bản sao số', icon: Truck },
-  ]},
-]
+import { useLang } from '../i18n'
 
 export default function Sidebar({ mobileOpen, onClose }: { mobileOpen:boolean; onClose:()=>void }) {
+  const { t } = useLang()
+  const groups = [
+    { label: t('nav.main'), items:[
+      { to:'/', label: t('nav.eco'), icon: Map },
+      { to:'/events', label: t('nav.events'), icon: Flame },
+      { to:'/what-if', label: t('nav.whatif'), icon: Layers },
+      { to:'/missions', label: t('nav.missions'), icon: FileCheck },
+    ]},
+    { label:'', items:[
+      { to:'/community', label: t('nav.community'), icon: Users },
+      { to:'/twin', label: t('nav.twin'), icon: Truck },
+    ]},
+  ]
   return (
     <>
       <aside className={`sidebar ${mobileOpen?'open':''}`}>
@@ -49,9 +50,9 @@ export default function Sidebar({ mobileOpen, onClose }: { mobileOpen:boolean; o
         </nav>
 
         <div className="sidebar-foot">
-          <NavLink to="/admin" className="nav-link" onClick={onClose}><Settings size={16}/> Cài đặt</NavLink>
-          <NavLink to="/reports" className="nav-link" onClick={onClose}><HelpCircle size={16}/> Trợ giúp</NavLink>
-          <div className="profile"><div className="avatar">QT</div><div><div className="pname">Quản trị Tỉnh</div><div className="prole">Gia Lai</div></div></div>
+          <NavLink to="/admin" className="nav-link" onClick={onClose}><Settings size={16}/> {t('nav.settings')}</NavLink>
+          <NavLink to="/reports" className="nav-link" onClick={onClose}><HelpCircle size={16}/> {t('nav.help')}</NavLink>
+          <div className="profile"><div className="avatar">QT</div><div><div className="pname">{t('nav.adminName')}</div><div className="prole">Gia Lai</div></div></div>
         </div>
       </aside>
       {mobileOpen && <div className="backdrop" onClick={onClose} />}

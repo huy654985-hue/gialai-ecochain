@@ -3,11 +3,13 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ModeSwitch from './ModeSwitch'
 import { api } from '../services/api'
+import { LANGS, useLang } from '../i18n'
 
 export default function Header({ onMenu }: { onMenu: ()=>void }) {
   const [now, setNow] = useState(new Date())
   const [activeCount, setActiveCount] = useState(0)
   const nav = useNavigate()
+  const { lang, setLang, t } = useLang()
   useEffect(()=>{
     const id=setInterval(()=> setNow(new Date()), 1000)
     api.alertList().then((d: any)=> {
@@ -28,14 +30,19 @@ export default function Header({ onMenu }: { onMenu: ()=>void }) {
       </div>
       <div style={{flex:1, maxWidth:420, margin:'0 16px', display:'flex', alignItems:'center', background:'#F8FAF9', border:'1px solid #E2E8E5', borderRadius:999, padding:'6px 12px', gap:8}}>
         <span style={{opacity:0.5}}>⌕</span>
-        <input placeholder="Tìm xã, thôn, sự cố..." style={{border:0, outline:'none', flex:1, fontSize:13, background:'transparent'}} onKeyDown={e=>{ if(e.key==='Enter') alert('Tìm: '+(e.target as HTMLInputElement).value)}} />
+        <input placeholder={t('hdr.search')} style={{border:0, outline:'none', flex:1, fontSize:13, background:'transparent'}} onKeyDown={e=>{ if(e.key==='Enter') alert('Tìm: '+(e.target as HTMLInputElement).value)}} />
       </div>
 
       <div className="header-right">
-        <span className="status"><span className="dot live" style={{animation:'pulse 1.5s infinite'}}/> Hệ thống trực tiếp</span>
+        <span className="status"><span className="dot live" style={{animation:'pulse 1.5s infinite'}}/> {t('hdr.live')}</span>
         <span className="meta">Cập nhật: {timeStr}</span>
-        <button className="icon-btn" aria-label="Thông báo" onClick={()=> nav('/notifications')}><Bell size={18}/>{activeCount > 0 && <span className="badge">{activeCount}</span>}</button>
-        <button className="assistant"><Bot size={16}/> Trợ lý AI</button>
+        <span title={t('hdr.langNote')} style={{display:'flex', gap:4, alignItems:'center'}}>
+          {LANGS.map(l=> (
+            <button key={l.id} onClick={()=> setLang(l.id)} aria-label={l.label} style={{border: lang===l.id ? '1px solid #0F766E' : '1px solid #E2E8E5', background: lang===l.id ? '#0F766E' : '#fff', color: lang===l.id ? '#fff' : '#000', borderRadius:999, padding:'4px 8px', fontSize:11, fontWeight:700}}>{l.id === 'vi' ? 'VI' : l.id === 'jr' ? 'JR' : 'EĐ'}</button>
+          ))}
+        </span>
+        <button className="icon-btn" aria-label={t('hdr.notif')} onClick={()=> nav('/notifications')}><Bell size={18}/>{activeCount > 0 && <span className="badge">{activeCount}</span>}</button>
+        <button className="assistant"><Bot size={16}/> {t('hdr.assistant')}</button>
         <div className="user">QT</div>
       </div>
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, uploadProposalPhoto } from '../services/api'
+import { useLang } from '../i18n'
 
 type Post = {
   id: string; status: string; title?: string; administrative_unit_id?: string
@@ -39,6 +40,7 @@ function timeAgo(s?: string){
 }
 
 export default function Community(){
+  const { t } = useLang()
   const [nick, setNick] = useState(()=> localStorage.getItem('ecogl_nick') || `ban-${Math.floor(1000 + Math.random() * 9000)}`)
   const [posts, setPosts] = useState<Post[]>([])
   const [filter, setFilter] = useState<'NEED'|'DONE'|'ALL'>('NEED')
@@ -110,28 +112,28 @@ export default function Community(){
   return (
     <div style={{display:'flex', flexDirection:'column', gap:14, maxWidth:640, margin:'0 auto'}}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-        <h1>Cộng đồng {needCount > 0 && <span style={{fontSize:12, background:'#F59E0B', color:'#fff', padding:'2px 8px', borderRadius:999}}>{needCount} cần xác minh</span>}</h1>
+        <h1>{t('com.title')} {needCount > 0 && <span style={{fontSize:12, background:'#F59E0B', color:'#fff', padding:'2px 8px', borderRadius:999}}>{needCount} {t('com.need')}</span>}</h1>
         <input value={nick} onChange={e=> setNick(e.target.value)} aria-label="Biệt danh" title="Biệt danh của bạn" style={{border:'1px solid #E2E8E5', borderRadius:999, padding:'6px 12px', fontSize:13, width:140}} />
       </div>
 
       <div style={{background:'#fff', border:'1px solid #E2E8E5', borderRadius:16, padding:14}}>
         <div style={{display:'flex', gap:8}}>
           <div style={{width:36, height:36, borderRadius:999, background: avatarColor(nick), color:'#fff', display:'grid', placeItems:'center', fontWeight:800}}>{(nick[0] || '?').toUpperCase()}</div>
-          <input value={report} onChange={e=> setReport(e.target.value)} placeholder={`${nick} ơi, thấy gì ở hiện trường?`} aria-label="Báo nhanh" style={{flex:1, border:0, outline:'none', fontSize:14, background:'#F8FAF9', borderRadius:999, padding:'8px 14px'}} onKeyDown={e=> { if(e.key === 'Enter') sendReport() }} />
+          <input value={report} onChange={e=> setReport(e.target.value)} placeholder={`${nick} ơi, ${t('com.composerPh')}`} aria-label="Báo nhanh" style={{flex:1, border:0, outline:'none', fontSize:14, background:'#F8FAF9', borderRadius:999, padding:'8px 14px'}} onKeyDown={e=> { if(e.key === 'Enter') sendReport() }} />
         </div>
         <div style={{display:'flex', gap:6, marginTop:10, flexWrap:'wrap', alignItems:'center'}}>
-          <input value={reportArea} onChange={e=> setReportArea(e.target.value)} placeholder="📍 Khu vực (vd: Xã Ia Mơr)" aria-label="Khu vực" style={{border:'1px solid #E2E8E5', borderRadius:999, padding:'6px 12px', fontSize:12, flex:1, minWidth:140}} />
-          <button onClick={sendReport} style={{background:'#0F766E', color:'#fff', border:0, borderRadius:999, padding:'8px 16px', fontWeight:700}}>Đăng</button>
+          <input value={reportArea} onChange={e=> setReportArea(e.target.value)} placeholder={`📍 ${t('com.areaPh')}`} aria-label="Khu vực" style={{border:'1px solid #E2E8E5', borderRadius:999, padding:'6px 12px', fontSize:12, flex:1, minWidth:140}} />
+          <button onClick={sendReport} style={{background:'#0F766E', color:'#fff', border:0, borderRadius:999, padding:'8px 16px', fontWeight:700}}>{t('com.post')}</button>
         </div>
         {reportSent && <div style={{marginTop:8, fontSize:12, color:'#0F766E'}}>{reportSent} · kênh mobile (beta), bài AI sẽ lên feed sau khi quét</div>}
         <div style={{marginTop:8, fontSize:11, color:'#64748B'}}>BÁO CÁO → XÁC MINH CỘNG ĐỒNG (2 lượt) → DUYỆT CHÍNH THỨC</div>
       </div>
 
       <div style={{display:'flex', gap:6}}>
-        {([['NEED','Cần xác minh'],['DONE','Đã xác minh'],['ALL','Tất cả']] as const).map(([v, label])=> (
+        {([['NEED', t('com.need')],['DONE', t('com.done')],['ALL', t('com.all')]] as const).map(([v, label])=> (
           <button key={v} onClick={()=> setFilter(v)} style={{padding:'6px 12px', borderRadius:999, border:'1px solid #E2E8E5', background: filter===v ? '#0B1412' : '#fff', color: filter===v ? '#fff' : '#000'}}>{label}</button>
         ))}
-        <button onClick={refresh} style={{marginLeft:'auto', padding:'6px 12px', borderRadius:999, border:'1px solid #E2E8E5', background:'#fff'}}>↻ Tải lại</button>
+        <button onClick={refresh} style={{marginLeft:'auto', padding:'6px 12px', borderRadius:999, border:'1px solid #E2E8E5', background:'#fff'}}>↻ {t('com.reload')}</button>
       </div>
 
       {loading && <div className="card">Đang tải feed...</div>}
@@ -165,16 +167,16 @@ export default function Community(){
             </div>
 
             <div style={{display:'flex', gap:6, marginTop:10}}>
-              <button onClick={()=> vote(p.id, true)} style={{flex:1, border:'1px solid #E2E8E5', background:'#F0FDF4', borderRadius:999, padding:'8px 0'}}>👍 Xác nhận{yes > 0 ? ` (${yes})` : ''}</button>
-              <button onClick={()=> vote(p.id, false)} style={{flex:1, border:'1px solid #E2E8E5', background:'#FEF2F2', borderRadius:999, padding:'8px 0'}}>👎 Phản đối{no > 0 ? ` (${no})` : ''}</button>
-              <button onClick={()=> open(p.id)} style={{flex:1, border:'1px solid #E2E8E5', background:'#fff', borderRadius:999, padding:'8px 0'}}>💬 {confs.length > 0 ? `${confs.length} bình luận` : 'Chi tiết'}</button>
-              <button onClick={()=> { setUploadFor(p.id); setTimeout(()=> fileRef.current?.click(), 0) }} style={{flex:1, border:'1px solid #E2E8E5', background:'#fff', borderRadius:999, padding:'8px 0'}}>📷 Ảnh</button>
+              <button onClick={()=> vote(p.id, true)} style={{flex:1, border:'1px solid #E2E8E5', background:'#F0FDF4', borderRadius:999, padding:'8px 0'}}>👍 {t('com.confirm')}{yes > 0 ? ` (${yes})` : ''}</button>
+              <button onClick={()=> vote(p.id, false)} style={{flex:1, border:'1px solid #E2E8E5', background:'#FEF2F2', borderRadius:999, padding:'8px 0'}}>👎 {t('com.object')}{no > 0 ? ` (${no})` : ''}</button>
+              <button onClick={()=> open(p.id)} style={{flex:1, border:'1px solid #E2E8E5', background:'#fff', borderRadius:999, padding:'8px 0'}}>💬 {confs.length > 0 ? `${confs.length} bình luận` : t('com.details')}</button>
+              <button onClick={()=> { setUploadFor(p.id); setTimeout(()=> fileRef.current?.click(), 0) }} style={{flex:1, border:'1px solid #E2E8E5', background:'#fff', borderRadius:999, padding:'8px 0'}}>📷 {t('com.photo')}</button>
             </div>
 
             {openId === p.id && detail && (
               <div style={{marginTop:10, borderTop:'1px solid #F1F5F9', paddingTop:10, fontSize:13}}>
                 <div style={{display:'flex', gap:6, marginBottom:8}}>
-                  <input value={comment} onChange={e=> setComment(e.target.value)} placeholder="Viết bình luận kèm lượt xác minh..." aria-label="Bình luận" style={{flex:1, border:'1px solid #E2E8E5', borderRadius:999, padding:'6px 12px', fontSize:12}} onKeyDown={e=> { if(e.key === 'Enter') vote(p.id, true) }} />
+                  <input value={comment} onChange={e=> setComment(e.target.value)} placeholder={t('com.commentPh')} aria-label="Bình luận" style={{flex:1, border:'1px solid #E2E8E5', borderRadius:999, padding:'6px 12px', fontSize:12}} onKeyDown={e=> { if(e.key === 'Enter') vote(p.id, true) }} />
                 </div>
                 {(detail.photos?.length ?? 0) > 0 && (
                   <div style={{fontSize:12, color:'#334155', marginBottom:6}}>📷 {detail.photos!.length} ảnh bằng chứng {detail.photos!.some(x=> x.is_duplicate) && '(có ảnh trùng hash)'}</div>

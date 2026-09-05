@@ -3,6 +3,7 @@ import { AnimatePresence, MotionConfig } from 'framer-motion'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import AppShell from './components/AppShell'
 import { PageTransition } from './motion/primitives'
+import { LangProvider } from './i18n'
 const EcoMap = lazy(()=> import('./pages/EcoMap'))
 const MapPage = lazy(()=> import('./pages/MapPage'))
 const EventIntelligence = lazy(()=> import('./pages/EventIntelligence'))
@@ -213,10 +214,12 @@ export default function App(){
   return (
     <MotionConfig reducedMotion="user">
       <BrowserRouter>
-        <AppShell>
-          <AnimatedRoutes />
-        </AppShell>
-        <AIAssistant />
+        <LangProvider>
+          <AppShell>
+            <AnimatedRoutes />
+          </AppShell>
+          <AIAssistant />
+        </LangProvider>
       </BrowserRouter>
     </MotionConfig>
   )
