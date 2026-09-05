@@ -45,7 +45,7 @@ export default function Reports(){
         {done && <div style={{marginTop:8, fontSize:13, color:'#166534', background:'#DCFCE7', borderRadius:8, padding:'6px 10px'}}>{done}</div>}
         {error && <div style={{marginTop:8, fontSize:13, color:'#991B1B', background:'#FEE2E2', borderRadius:8, padding:'6px 10px'}}>{error}</div>}
       </div>
-      <style>{`.grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px} .card{background:#fff; border:1px solid #E2E8E5; border-radius:16px; padding:16px}`}</style>
+      <style>{`.grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px} .card{background:#fff; border:1px solid #E2E8E5; border-radius:16px; padding:16px} @media (max-width: 640px){ .grid{ grid-template-columns:1fr; } }`}</style>
     </div>
   )
 }

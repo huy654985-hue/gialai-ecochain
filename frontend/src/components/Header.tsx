@@ -28,7 +28,7 @@ export default function Header({ onMenu }: { onMenu: ()=>void }) {
         <span className="scope-badge">TRỰC TIẾP</span>
         <ModeSwitch />
       </div>
-      <div style={{flex:1, maxWidth:420, margin:'0 16px', display:'flex', alignItems:'center', background:'#F8FAF9', border:'1px solid #E2E8E5', borderRadius:999, padding:'6px 12px', gap:8}}>
+      <div className="hdr-search" style={{flex:1, maxWidth:420, margin:'0 16px', display:'flex', alignItems:'center', background:'#F8FAF9', border:'1px solid #E2E8E5', borderRadius:999, padding:'6px 12px', gap:8}}>
         <span style={{opacity:0.5}}>⌕</span>
         <input placeholder={t('hdr.search')} style={{border:0, outline:'none', flex:1, fontSize:13, background:'transparent'}} onKeyDown={e=>{ if(e.key==='Enter') alert('Tìm: '+(e.target as HTMLInputElement).value)}} />
       </div>

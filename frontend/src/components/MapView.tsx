@@ -798,7 +798,7 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
 
       {/* Panel quét FIRMS: ĐANG CHÁY (đỏ) + NGHI NGỜ warning (vàng) */}
       {fireAlerts.length>0 && (
-        <div style={{position:'absolute', bottom:80, left:12, background:'rgba(255,255,255,0.98)', backdropFilter:'blur(12px)', borderRadius:12, padding:12, minWidth:280, maxWidth:360, boxShadow:'0 8px 24px rgba(0,0,0,0.15)', border: burning.length ? '2px solid #DC2626' : '1px solid #F59E0B'}}>
+        <div className="fire-panel" style={{position:'absolute', bottom:80, left:12, background:'rgba(255,255,255,0.98)', backdropFilter:'blur(12px)', borderRadius:12, padding:12, minWidth:280, maxWidth:360, boxShadow:'0 8px 24px rgba(0,0,0,0.15)', border: burning.length ? '2px solid #DC2626' : '1px solid #F59E0B'}}>
           {burning.length>0 && <div style={{fontWeight:800, fontSize:12, color:'#DC2626'}}>🔥 ĐANG CHÁY ≤5km ({burning.length})</div>}
           {burning.length>0 && <div style={{maxHeight:110, overflow:'auto', marginTop:6, display:'flex', flexDirection:'column', gap:6}}>
             {burning.map((a:any, i:number)=>(
@@ -826,7 +826,7 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
         </div>
       )}
       {(info || pixel) && (
-        <div style={{position:'absolute', bottom:80, right:12, background:'rgba(255,255,255,0.96)', backdropFilter:'blur(12px)', borderRadius:12, padding:12, minWidth:280, maxWidth:360, boxShadow:'0 8px 24px rgba(0,0,0,0.12)'}}>
+        <div className="info-panel" style={{position:'absolute', bottom:80, right:12, background:'rgba(255,255,255,0.96)', backdropFilter:'blur(12px)', borderRadius:12, padding:12, minWidth:280, maxWidth:360, boxShadow:'0 8px 24px rgba(0,0,0,0.12)'}}>
           {info && info.layer==='watch' && <><div style={{fontWeight:700, fontSize:12}}>👁 THEO DÕI — {info.village} <span style={{fontSize:10, padding:'2px 6px', borderRadius:999, background: info.status==='ANALYZING' ? '#FEF3C7' : '#DCFCE7'}}>{info.status === 'ANALYZING' ? 'ĐANG KIỂM TRA...' : info.status}</span></div><div style={{fontSize:12, marginTop:6, color:'#334155'}}>📍 Điểm cháy: {info.fire?.lat?.toFixed(4)}, {info.fire?.lon?.toFixed(4)} · cách {info.fire?.distance_km}km · {info.fire?.date} · tin cậy {info.fire?.confidence}</div><div style={{fontSize:12, marginTop:6}}>🛰️ Sentinel-2: {info.sentinel ? <><b>{info.sentinel.status}</b> · NDVI <b>{info.sentinel.ndvi ?? '—'}</b> · {info.sentinel.source}{info.sentinel.acquired ? ` · ${info.sentinel.acquired}` : ''}</> : 'Đang kiểm tra...'}</div><div style={{fontSize:12, marginTop:4}}>🤖 Model FireRisk: {info.model ? <><b>{info.model.status === 'UNAVAILABLE' ? 'CHƯA CHẠY' : info.model.status}</b>{info.model.risk_score !== undefined && <> · Rủi ro <b>{info.model.risk_score}/100</b> · CẤP <b>{info.model.warning_level}</b> · tin cậy {info.model.confidence}%</>}</> : 'Đang kiểm tra...'}</div></>}
           {info && info.layer!=='watch' && <><div style={{fontWeight:700, fontSize:12}}>DỮ LIỆU VỆ TINH — {info.layer} <span style={{fontSize:10, padding:'2px 6px', borderRadius:999, background: info.status==='LIVE'?'#DCFCE7': info.status==='DEMO'?'#FEF3C7': info.status==='CONFIGURATION_REQUIRED'?'#FEF3C7':'#FEE2E2'}}>{info.status==='CONFIGURATION_REQUIRED' ? 'DEMO · Cache Vệ tinh Gia Lai' : info.status}</span></div><div style={{fontSize:12, marginTop:6, color:'#334155'}}>Nguồn: {info.status==='CONFIGURATION_REQUIRED' ? 'Esri/Sentinel Tile tĩnh · DEMO Cache' : (info.source || 'Sentinel-2')} · Ngày: {info.acquired || info.date || '—'} {info.status==='CONFIGURATION_REQUIRED' && <span style={{color:'#F59E0B'}}>· Fallback BaseMap</span>}</div>
           {info.layer==='smoke' && info.is_smoke && <div style={{marginTop:6, padding:'6px 8px', background:'#FEE2E2', borderRadius:8, color:'#991B1B', fontSize:11, fontWeight:700}}>🚨 {info.alert?.message}<br/><span style={{fontWeight:400}}>Độ tin cậy {(info.confidence*100).toFixed(0)}% · {info.reason}</span></div>}
@@ -838,7 +838,11 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
       {mode==='demo' && !tourOpen && <button onClick={()=>setTourOpen(true)} style={{position:'absolute', bottom:76, right:12, zIndex:20, border:0, borderRadius:999, background:'#F59E0B', color:'#000', fontWeight:800, fontSize:12, padding:'8px 14px', cursor:'pointer', boxShadow:'0 4px 12px rgba(0,0,0,0.2)'}}>▶ Tutorial DEMO</button>}
       {mode==='demo' && tourOpen && <DemoTour onDone={()=>setTourOpen(false)} />}
 
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}} @keyframes marquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}} @keyframes marquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+      @media (max-width: 640px){
+        .fire-panel{ top:108px !important; bottom:auto !important; left:12px !important; right:12px !important; min-width:0 !important; max-width:none !important; max-height:30vh; overflow:auto; }
+        .info-panel{ left:12px !important; right:12px !important; min-width:0 !important; max-width:none !important; max-height:28vh; overflow:auto; }
+      }`}</style>
     </div>
   )
 }

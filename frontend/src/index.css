@@ -11,6 +11,18 @@ button:focus-visible{ outline:2px solid #0F766E; outline-offset:2px; }
 @keyframes shimmer{ 0%{ background-position:100% 0 } 100%{ background-position:-100% 0 } }
 .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
 /* responsive breakpoints */
-@media (max-width: 640px){ body{ font-size:14px; } }
+@media (max-width: 640px){
+  body{ font-size:14px; }
+  h1{ font-size:20px !important; }
+  .page{ padding:0 2px; }
+  /* shared auto-fit grids used by pages */
+  .ctl-grid{ grid-template-columns:1fr !important; }
+  .slot-grid{ grid-template-columns:1fr !important; }
+  .hdr-search{ display:none !important; }
+  .header{ padding:0 12px !important; gap:10px !important; }
+}
 @media (min-width: 641px) and (max-width: 1024px){ }
 @media (min-width: 1025px){ }
+/* grid helpers (desktop first, collapsed by the 640px rules above) */
+.ctl-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.slot-grid{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }

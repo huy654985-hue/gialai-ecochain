@@ -112,7 +112,7 @@ function AIAssistant(){
     <>
       <button className="fab" onClick={()=> setOpen(true)} aria-label="Trợ lý AI môi trường">🌿</button>
       {open && (
-        <div className="ai-drawer" role="dialog" aria-modal="true" style={{width:420, maxHeight:'85vh', overflow:'auto'}}>
+        <div className="ai-drawer" role="dialog" aria-modal="true" style={{width:'min(420px, calc(100vw - 24px))', maxHeight:'85vh', overflow:'auto'}}>
           <div className="ai-head">Trí tuệ Môi trường Gia Lai <button onClick={()=>setOpen(false)}>✕</button></div>
           <div style={{fontSize:11, color:'#64748B', margin:'4px 0'}}>Hệ thống điều phối: Master → RAG → Domain Agent → Tools → Evidence</div>
           <div className="suggestions">
@@ -165,7 +165,8 @@ function AIAssistant(){
       )}
       <style>{`
         .fab{ position:fixed; bottom:20px; right:20px; width:56px; height:56px; border-radius:999px; background:#0B1412; color:#fff; border:0; font-size:22px; box-shadow:0 8px 24px rgba(0,0,0,0.2); }
-        .ai-drawer{ position:fixed; bottom:90px; right:20px; width:360px; background:#fff; border:1px solid #E2E8E5; border-radius:16px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,0.12); }
+        .ai-drawer{ position:fixed; bottom:90px; right:20px; width:min(420px, calc(100vw - 24px)); background:#fff; border:1px solid #E2E8E5; border-radius:16px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,0.12); }
+        @media (max-width: 640px){ .ai-drawer{ right:12px; bottom:84px; } }
         .ai-head{ display:flex; justify-content:space-between; font-weight:700; font-size:13px; }
         .suggestions{ display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
         .suggestions button{ font-size:11px; background:#F1F5F3; border:0; padding:6px 10px; border-radius:999px; text-align:left; }

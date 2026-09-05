@@ -130,7 +130,7 @@ export default function WhatIfLab(){
             <button key={s} onClick={()=> setScenario(s)} style={{background: scenario===s ? '#0B1412' : '#F1F5F3', color: scenario===s ? '#fff' : '#0B1412', padding:'8px 12px', borderRadius:999, border:0}}>{s}</button>
           ))}
         </div>
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
+        <div className="ctl-grid">
           <Slider label="🌧 Mưa tăng" value={rain} min={0} max={60} unit="%" onChange={setRain} />
           <Slider label="🌡 Nóng thêm" value={heat} min={0} max={5} unit="°C" onChange={setHeat} />
           <Slider label="🔥 Mất rừng" value={forestLoss} min={0} max={2000} unit=" ha" onChange={setForestLoss} />
@@ -164,7 +164,7 @@ export default function WhatIfLab(){
               {slots.map((s, i)=> <Bar key={s.id} dataKey={`${String.fromCharCode(65+i)} · ${s.scenario}`} fill={slotColors[i % 3]} />)}
             </BarChart>
           </ResponsiveContainer>
-          <div style={{display:'grid', gridTemplateColumns:`repeat(${slots.length}, 1fr)`, gap:10, marginTop:10}}>
+          <div className="slot-grid" style={{marginTop:10}}>
             {slots.map((s, i)=> (
               <div key={s.id} style={{border:'1px solid #E2E8E5', borderRadius:12, padding:10, fontSize:12, lineHeight:1.7}}>
                 <b>Slot {String.fromCharCode(65+i)} · {s.scenario}</b> <span style={{color:'#64748B'}}>id {String(s.id).slice(0,8)}</span><br/>
