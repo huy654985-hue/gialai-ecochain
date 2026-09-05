@@ -81,7 +81,9 @@ async def orchestrate(query: str, lat: float=13.9, lon: float=108.3, conversatio
                     res = await fn()
                 tool_results.append(res)
             except Exception as e:
-                tool_results.append({"tool": name, "status": "UNAVAILABLE", "error": str(e)})
+                from app.core.secrets_guard import scrub_secrets
+
+                tool_results.append({"tool": name, "status": "UNAVAILABLE", "error": scrub_secrets(str(e))})
     
     # 3. Data validation & deterministic calculation (FireRiskEngine) already in tool get_fire_risk
     fire_risk = next((t for t in tool_results if t.get("tool")=="get_fire_risk"), None)
@@ -105,7 +107,9 @@ async def orchestrate(query: str, lat: float=13.9, lon: float=108.3, conversatio
         except:
             structured = {"raw": content, "parse_error": True}
     except Exception as e:
-        structured = {"error": str(e), "fallback": True}
+        from app.core.secrets_guard import scrub_secrets
+
+        structured = {"error": scrub_secrets(str(e)), "fallback": True}
         llm_res = {"provider": "MockLLM", "model": "mock-llm-v1"}
     
     # 5. Data-aware confidence

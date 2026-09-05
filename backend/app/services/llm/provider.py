@@ -68,10 +68,20 @@ class OpenAIProvider(LLMProvider):
     async def health(self):
         return {"status": "LIVE" if self.api_key else "CONFIGURATION_REQUIRED", "provider": "OpenAI", "model": self.model}
 
+
+def clean_model_name(model: str | None, default: str) -> str:
+    """AI_MODEL env typos (spaces, slashes, commas) must never build a bad URL."""
+    import re
+
+    m = (model or "").strip().split("/")[-1].strip()
+    if not m or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.\-]*", m):
+        return default
+    return m
+
 class GeminiProvider(LLMProvider):
     def __init__(self, api_key: str, model: str = "gemini-2.5-flash"):
         self.api_key = api_key
-        self.model = model
+        self.model = clean_model_name(model, default="gemini-2.5-flash")
     async def generate(self, system, user, schema=None):
         # Gemini API: https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
@@ -145,7 +155,7 @@ def get_llm_provider() -> LLMProvider:
         return GroqProvider(groq_key, model or "llama-3.1-70b-versatile")
     # Auto-detect by available key
     if gemini_key:
-        return GeminiProvider(gemini_key, model or "gemini-2.5-flash" if provider in ("", "gemini") else model)
+        return GeminiProvider(gemini_key, (model or "gemini-2.5-flash") if provider in ("", "gemini") else (model or "gemini-2.5-flash"))
     if groq_key:
         return GroqProvider(groq_key, model or "llama-3.1-70b-versatile")
     if openai_key:
