@@ -102,7 +102,7 @@ class DisasterGuardAgent:
             return {"risk_type":rt,"score":score,"confidence":60,"level":_level(score).value,"explanation":"Generic risk","inputs":inputs or {},"model_version":MODEL_VERSION,"source":"DisasterGuard"}
         return h(administrative_unit_id, geometry, inputs or {})
     def analyze_all(self, administrative_unit_id:str, geometry:Dict|None=None, inputs:Dict[str,Any]|None=None)->List[Dict[str,Any]]:
-        return [self.analyze(administrative_unit_id, t, geometry, inputs) for t in ["FIRE","FLOOD","LANDSLIDE","DROUGHT","HEAT"]]
+        return [self.analyze(administrative_unit_id, t, geometry, inputs) for t in ["FIRE","FLOOD","LANDSLIDE","DROUGHT","HEAT","STORM"]]
     def data_fusion(self, signals:List[Dict[str,Any]], community_verified:bool=False)->Dict[str,Any]:
         # configurable weighting — community verified boosts confidence
         avg_conf=sum(s["confidence"] for s in signals)/len(signals) if signals else 60
