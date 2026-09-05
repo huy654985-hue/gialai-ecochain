@@ -51,8 +51,8 @@ class RiskEngine:
     def history_trend(self, db:Session, administrative_unit_id:str, risk_type:str="OVERALL", limit:int=6)->Dict[str,Any]:
         rows=db.query(RiskHistory).filter_by(administrative_unit_id=administrative_unit_id, risk_type=risk_type.upper()).order_by(RiskHistory.created_at.asc()).limit(limit).all()
         if not rows:
-            # mock trend
-            base=random.Random(hash(administrative_unit_id)&0xFFFFFFFF).randint(30,60)
+            # mock trend (sha256 seed: stable across restarts)
+            base=random.Random(int(hashlib.sha256(administrative_unit_id.encode()).hexdigest()[:8],16)).randint(30,60)
             trend=[base + i*5 for i in range(4)]
             return {"scores":trend, "trend":"↗ Increasing" if trend[-1]>trend[0] else "→ Stable"}
         scores=[r.score for r in rows]

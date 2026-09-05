@@ -1,6 +1,7 @@
 """NDVI module — NDVI = (NIR - RED)/(NIR+RED), B8/B4 for Sentinel-2."""
 from __future__ import annotations
 
+import hashlib
 import random
 from typing import Any
 
@@ -18,10 +19,11 @@ BAND_MAP = {
 
 
 def calculate_ndvi_mock(params):
-    """Deterministic mock — seeded by unit+date."""
+    """Deterministic mock — seeded by unit+date (sha256: stable across restarts)."""
     from app.services.earth_engine.service import NDVIStatistics
 
-    seed = hash((params.administrative_unit_id, params.start_date, params.end_date, params.dataset.value)) & 0xFFFFFFFF
+    key = f"{params.administrative_unit_id}|{params.start_date}|{params.end_date}|{params.dataset.value}"
+    seed = int(hashlib.sha256(key.encode()).hexdigest()[:8], 16)
     rng = random.Random(seed)
     mean = round(rng.uniform(0.25, 0.85), 4)
     median = round(mean + rng.uniform(-0.03, 0.03), 4)

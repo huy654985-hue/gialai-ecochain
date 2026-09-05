@@ -1,6 +1,7 @@
 """WeatherProvider stub — Phase 2 plugs real API (OpenWeather, etc.)."""
 from __future__ import annotations
 
+import hashlib
 import random
 from app.core.enums import DataSourceType
 from app.services.data_providers.base import DataProvider, ProviderQuery, ProviderResult
@@ -12,7 +13,7 @@ class WeatherProvider(DataProvider):
         return DataSourceType.WEATHER
 
     def fetch(self, query: ProviderQuery) -> ProviderResult:
-        seed = hash(query.administrative_unit_id) & 0xFFFFFFFF
+        seed = int(hashlib.sha256(query.administrative_unit_id.encode()).hexdigest()[:8], 16)
         rng = random.Random(seed)
         return ProviderResult(
             source=DataSourceType.WEATHER,

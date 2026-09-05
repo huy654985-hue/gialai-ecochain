@@ -1,6 +1,6 @@
 """RankingEngine — 5 rankings, fairness rule, evidence-based."""
 from __future__ import annotations
-import json, random
+import json, hashlib, random
 from datetime import datetime
 from typing import Any, List
 from sqlalchemy.orm import Session
@@ -23,7 +23,7 @@ class RankingEngine:
             # mock scores
             snapshots=[]
             for i,au in enumerate(aus):
-                rng=random.Random(hash(au.id+ t)&0xFFFFFFFF)
+                rng=random.Random(int(hashlib.sha256((au.id+ t).encode()).hexdigest()[:8],16))
                 # different metrics per ranking
                 if t=="SAFETY": score= 100 - (rng.randint(0,40))
                 elif t=="RESPONSE": score= rng.uniform(60,95)
@@ -42,7 +42,7 @@ class RankingEngine:
         scored=[]
         for rs in units:
             if t=="SAFETY": s=100-rs.overall_score
-            else: s= random.Random(hash(rs.administrative_unit_id)&0xFFFFFFFF).uniform(50,95)
+            else: s= random.Random(int(hashlib.sha256(rs.administrative_unit_id.encode()).hexdigest()[:8],16)).uniform(50,95)
             scored.append((rs.administrative_unit_id, s))
         scored.sort(key=lambda x: x[1], reverse=True)
         out=[]

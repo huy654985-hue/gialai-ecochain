@@ -245,7 +245,7 @@ Current: `v1.0.0` points to `Phase9` + UI merge (9 tags: `phase1-ai-ready` → `
 ## Known Limitations
 
 - GEE real mode requires credentials; without them system runs deterministic mock (clearly labeled).
-- `earthengine-api` + `geemap` are optional deps — not needed for Demo; real NDVI requires `ee.Initialize`.
+- `earthengine-api` is an optional dep (lazy-imported; app boots without it) — `geemap` is NOT used anywhere in code. Real NDVI requires `ee.Initialize` with valid service-account credentials.
 - Map clustering not yet paginating >10k features — viewport loading recommended for >5k markers.
 - `dist` 1.5MB — code-split via `import()` recommended for production.
 - PostGIS not enforced on SQLite dev DB — production must use `geoalchemy2` + `GIST`.

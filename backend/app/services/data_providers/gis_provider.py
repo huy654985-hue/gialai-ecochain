@@ -1,4 +1,5 @@
 from __future__ import annotations
+import hashlib
 import random
 from app.core.enums import DataSourceType
 from app.services.data_providers.base import DataProvider, ProviderQuery, ProviderResult
@@ -8,7 +9,8 @@ class GISProvider(DataProvider):
     def source_type(self) -> DataSourceType:
         return DataSourceType.GIS
     def fetch(self, query: ProviderQuery) -> ProviderResult:
-        rng = random.Random(hash(query.administrative_unit_id) & 0xFFFFFFFF)
+        key = hashlib.sha256(query.administrative_unit_id.encode()).hexdigest()[:8]
+        rng = random.Random(int(key, 16))
         return ProviderResult(
             source=DataSourceType.GIS,
             dataset="GIS/MOCK",
