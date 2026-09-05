@@ -24,6 +24,7 @@ export const api = {
   nlWhatIf: (question:string)=> req('/api/what-if', { method:'POST', body: JSON.stringify({ question }) }),
   scenariosList: ()=> req('/api/scenarios').catch(()=> []),
   twinStates: (entity:string)=> req(`/api/digital-twin/states/${entity}`).catch(()=> null),
+  communeLevels: (units:{id?:string;name:string;lat:number;lon:number}[])=> req('/api/fire/commune-levels', { method:'POST', body: JSON.stringify({ units }) }),
   proposals: (status?:string)=> req(`/api/forest/proposals${status ? `?status=${status}` : ''}`).catch(()=> []),
   proposalDetail: (id:string)=> req(`/api/forest/proposals/${id}`),
   confirmProposal: (id:string, body:Record<string, unknown>)=> req(`/api/forest/proposals/${id}/community-confirm`, { method:'POST', body: JSON.stringify(body) }),

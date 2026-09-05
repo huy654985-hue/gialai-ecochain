@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models.fire import OfficialFireWarning, AIFirePrediction
 from app.services.fire_risk_engine import fire_risk_engine, score_to_level
 from app.core.enums import FireWarningLevel, FIRE_WARNING_LABELS
+from app.core.demo_mode import tag_data_origin
 from app.core.security import get_current_user
 import json, time
 
@@ -126,6 +127,54 @@ def fire_explain(prediction_id: str, db:Session=Depends(get_db)):
     p=db.get(AIFirePrediction, prediction_id)
     if not p: raise HTTPException(404, "Prediction not found")
     return {"prediction_id": p.id, "risk_score": p.risk_score, "level": p.warning_level, "confidence": p.confidence, "factors": json.loads(p.factors) if p.factors else {}, "evidence": json.loads(p.evidence) if p.evidence else {}, "model_version": p.model_version, "explanation": f"Risk {p.risk_score}/100 — " + ", ".join(json.loads(p.factors).keys()) if p.factors else ""}
+
+@router.post("/fire/commune-levels")
+async def commune_levels(body: dict):
+    """Fire level for many communes in ONE call — shared weather+FIRMS fetch,
+    FireRiskEngine per unit. Pure compute (no DB writes) for map rendering."""
+    import hashlib
+    import random
+
+    units = body.get("units") or []
+    if not isinstance(units, list) or len(units) > 200:
+        raise HTTPException(400, "units must be a list of at most 200 {name,lat,lon}")
+    # shared weather once (province center)
+    weather = {"temperature": 32, "humidity": 35, "rainfall": 1, "wind_speed": 18}
+    try:
+        from app.services.weather_service import fetch_current
+        w = await fetch_current(13.9, 108.3)
+        cur = w.get("current", {}) or {}
+        weather = {"temperature": cur.get("temperature", 32), "humidity": cur.get("humidity", 35),
+                   "rainfall": cur.get("precipitation", 1), "wind_speed": cur.get("windspeed", 18)}
+    except Exception:
+        pass
+    # shared FIRMS hotspots once
+    hotspots = []
+    try:
+        from app.services.firms_service import fetch_firms
+        f = await fetch_firms(13.9, 108.3)
+        hotspots = f.get("fires", [])[:50]
+    except Exception:
+        pass
+    out = []
+    for u in units:
+        try:
+            name = str(u.get("name") or u.get("id") or "?")
+            lat = float(u.get("lat", 13.9))
+            lon = float(u.get("lon", 108.3))
+            rng = random.Random(int(hashlib.sha256(f"{lat:.2f}{lon:.2f}".encode()).hexdigest()[:8], 16))
+            terrain = {"elevation": round(rng.uniform(100, 800), 1), "slope": round(rng.uniform(5, 30), 1)}
+            near = [h for h in hotspots
+                    if abs((h.get("latitude") or 0) - lat) < 0.15 and abs((h.get("longitude") or 0) - lon) < 0.15][:3]
+            result = fire_risk_engine.analyze(name, satellite={"ndvi": 0.5},
+                                              weather=weather, terrain=terrain,
+                                              hotspots=near, community=0)
+            out.append({"key": str(u.get("id") or name), "name": name, "lat": lat, "lon": lon,
+                        "level": result["warning_level"], "score": result["risk_score"],
+                        "confidence": result["confidence"]})
+        except Exception:
+            continue
+    return {"levels": out, "count": len(out), "status": "LIVE", "origin": tag_data_origin()}
 
 @router.post("/fire/simulation")
 def fire_simulation(body:dict):

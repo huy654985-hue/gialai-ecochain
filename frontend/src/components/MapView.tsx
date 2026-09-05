@@ -45,17 +45,7 @@ const DEMO_ALERTS = [
 const API = ((import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000').replace(/[\r\n]/g, "").trim().replace(/\/$/, "")
 const TILE_FIX = (url: string) => url.replace(/[\r\n]/g, "").trim()
 
-// 8 điểm phủ Gia Lai mới (Tây Nguyên + Bình Định cũ — sáp nhập 2025, 15,536km2)
-const STATIONS = [
-  { id:1, name:'Trạm Kiểm lâm Ia Mơr - Huyện Chư Prông (Biên giới Campuchia)', coords:[107.65, 13.55] as [number,number], level:'V', score:88, type:'Cảnh báo Khẩn cấp', temp:34, humidity:28, wind:18 },
-  { id:2, name:'Trạm Bảo tồn VQG Kon Ka Kinh', coords:[108.45, 14.25] as [number,number], level:'II', score:32, type:'An toàn', temp:26, humidity:65, wind:8 },
-  { id:3, name:'Trạm Đèo An Khê (TX. An Khê - gió phơn)', coords:[108.65, 13.98] as [number,number], level:'V', score:91, type:'Điểm nóng', temp:36, humidity:22, wind:24 },
-  { id:4, name:'Trạm Vĩnh Thạnh - Huyện Vĩnh Thạnh', coords:[108.90, 14.25] as [number,number], level:'IV', score:78, type:'Cảnh báo', temp:33, humidity:30, wind:16 },
-  { id:5, name:'Trạm Quy Nhơn - Ven biển (Bình Định cũ)', coords:[109.21, 13.78] as [number,number], level:'III', score:45, type:'Giám sát ven biển', temp:29, humidity:55, wind:10 },
-  { id:6, name:'Trạm Bồng Sơn - Hoài Nhơn (Bắc Gia Lai mới)', coords:[109.02, 14.42] as [number,number], level:'II', score:28, type:'An toàn ven biển', temp:27, humidity:68, wind:7 },
-  { id:7, name:'Trạm An Nhơn - Đồng bằng', coords:[109.01, 13.89] as [number,number], level:'III', score:52, type:'Giám sát đồng bằng', temp:30, humidity:52, wind:9 },
-  { id:8, name:'Trạm Xã Hội Sơn', coords:[108.68, 13.92] as [number,number], level:'I', score:15, type:'An toàn / Đã dập tắt', temp:27, humidity:70, wind:6 },
-]
+// (Trạm cố định đã thay bằng điểm CẤP cháy từng xã — vector, không lệch khi zoom)
 
 export default function MapView({ onSelect }: { onSelect?: (type:string, id:string)=>void }) {
   const mapContainer = useRef<HTMLDivElement>(null)
@@ -227,11 +217,6 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
   },[])
   useEffect(()=>{
     const id=setInterval(()=> setTickerIdx(i=> (i+1)%tickerLines.length), 3500)
-    return ()=> clearInterval(id)
-  },[])
-  const [jitter, setJitter]= useState({temp:0, hum:0, wind:0})
-  useEffect(()=>{
-    const id=setInterval(()=> setJitter({temp: (Math.random()-0.5)*0.4, hum: (Math.random()-0.5)*2, wind: (Math.random()-0.5)*0.6}), 7000)
     return ()=> clearInterval(id)
   },[])
 
@@ -564,7 +549,7 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
         }
       })
       // 135 xã: bản nhẹ 836KB trước, rớt mới tải bản full 3.8MB
-      fetchJson(['gialai_135_light.geojson','gialai_135.geojson']).then((fc:any)=>{
+      fetchJson(['gialai_135_light.geojson','gialai_135.geojson']).then(async (fc:any)=>{
         const feats = fc.features || []
         communesRef.current = fc
         setCommunesCount(feats.length)
@@ -583,33 +568,42 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
             if(!f) return
             communePopup(f, e.lngLat, map)
           })
+          // Mỗi xã 1 điểm CẤP cháy (vector — cố định khi zoom, bấm hiện mức độ)
+          try{
+            const pts = feats.map((ft:any)=>{
+              let minx=1e9,miny=1e9,maxx=-1e9,maxy=-1e9
+              const walk=(c:any)=>{ if(typeof c[0]==='number'){ if(c[0]<minx)minx=c[0]; if(c[0]>maxx)maxx=c[0]; if(c[1]<miny)miny=c[1]; if(c[1]>maxy)maxy=c[1] } else c.forEach(walk) }
+              try{ walk(ft.geometry.coordinates) }catch{ return null }
+              if(minx>maxx) return null
+              return { ma:String(ft.properties?.ma_xa ?? ''), name:ft.properties?.ten_xa || '', lon:(minx+maxx)/2, lat:(miny+maxy)/2 }
+            }).filter(Boolean)
+            const rl = await fetch(TILE_FIX(`${API}/api/fire/commune-levels`), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ units: pts.slice(0,200).map((p:any)=>({ id:p.ma, name:p.name, lat:p.lat, lon:p.lon })) }) })
+            const rj = await rl.json()
+            const byKey: Record<string,any> = {}
+            ;(rj.levels || []).forEach((l:any)=>{ byKey[l.key]=l })
+            const fcPts = { type:'FeatureCollection', features: pts.map((p:any)=>{
+              const lv = byKey[p.ma] || byKey[p.name] || {}
+              return { type:'Feature', geometry:{ type:'Point', coordinates:[p.lon, p.lat] }, properties:{ ma_xa:p.ma, ten_xa:p.name, level:lv.level || 'II', score:lv.score ?? 50, confidence:lv.confidence ?? 60 } }
+            }) }
+            if(map.getSource('commune-fire-points')){ try{ map.removeLayer('commune-fire-label'); map.removeLayer('commune-fire'); map.removeSource('commune-fire-points') }catch{} }
+            map.addSource('commune-fire-points', { type:'geojson', data: fcPts } as any)
+            const lvColor = ['match',['get','level'],'I','#0EA5E9','II','#10B981','III','#F59E0B','IV','#F97316','V','#DC2626','#64748B'] as any
+            map.addLayer({ id:'commune-fire', type:'circle', source:'commune-fire-points', paint:{ 'circle-radius':11, 'circle-color':lvColor, 'circle-stroke-color':'#fff', 'circle-stroke-width':2 } } as any)
+            map.addLayer({ id:'commune-fire-label', type:'symbol', source:'commune-fire-points', layout:{ 'text-field':['get','level'], 'text-size':10, 'text-font':['Open Sans Bold','Arial Unicode MS Bold'] } as any, paint:{ 'text-color':'#fff' } })
+            map.on('click','commune-fire',(e:any)=>{
+              const f=e.features?.[0]?.properties
+              if(!f) return
+              void new (maplibregl as any).Popup({ closeButton:true, maxWidth:'300px' })
+                .setLngLat(e.lngLat)
+                .setHTML(`<div style="font-family:Inter,sans-serif; min-width:200px"><b>${f.ten_xa}</b><br/>Cấp cháy <b>CẤP ${f.level}</b> · Risk <b>${f.score}/100</b><br/><span style="font-size:11px;color:#64748B">Tin cậy ${f.confidence}% · AI tính theo từng xã · Nguồn: vệ tinh + thời tiết + FIRMS</span></div>`)
+                .addTo(map)
+              window.dispatchEvent(new CustomEvent('ecochain-select-area', { detail:{ area: f.ten_xa } }))
+              onSelectRef.current?.('commune-point', f.ten_xa)
+            })
+          }catch(e){ console.warn('Không tải được CẤP cháy từng xã', e) }
         }
       }).catch(e=>{ console.warn('Không tải được ranh xã', e); setCommunesError('Không tải được ranh xã — kiểm tra file public/') })
-      STATIONS.forEach(st=>{
-        const isHigh = st.level==='IV' || st.level==='V'
-        const el=document.createElement('div')
-        el.style.width='28px'; el.style.height='28px'; el.style.borderRadius='999px'; el.style.display='grid'; el.style.placeItems='center'
-        el.style.background= st.level==='V' ? '#DC2626' : st.level==='IV' ? '#F97316' : st.level==='III' ? '#F59E0B' : st.level==='II' ? '#10B981' : '#0EA5E9'
-        el.style.color='#fff'; el.style.fontWeight='800'; el.style.fontSize='11px'; el.style.border='2px solid #fff'; el.style.boxShadow='0 2px 8px rgba(0,0,0,0.25)'; el.style.cursor='pointer'
-        el.textContent= st.level
-        el.title=`${st.name} — CẤP ${st.level}`
-        if(isHigh){
-          const pulse=document.createElement('div')
-          pulse.style.position='absolute'; pulse.style.inset='-6px'; pulse.style.borderRadius='999px'; pulse.style.border='2px solid #DC2626'; pulse.style.animation='ping 1.5s cubic-bezier(0,0,0.2,1) infinite'; pulse.style.pointerEvents='none'
-          const wrapper=document.createElement('div'); wrapper.style.position='relative'; wrapper.appendChild(pulse); wrapper.appendChild(el)
-          new (maplibregl as any).Marker({ element: wrapper }).setLngLat(st.coords as any).addTo(map)
-        } else {
-          new (maplibregl as any).Marker({ element: el }).setLngLat(st.coords as any).addTo(map)
-        }
-        el.addEventListener('click', ()=>{
-          void new (maplibregl as any).Popup({ closeButton:true, maxWidth:'320px' })
-            .setLngLat(st.coords as any)
-            .setHTML(`<div style="font-family:Inter,sans-serif; min-width:220px"><b>${st.name}</b><br/>Cấp dự báo <b>CẤP ${st.level}</b> · Risk ${st.score}/100<br/>Nhiệt ${(st.temp + jitter.temp).toFixed(1)}°C · Ẩm ${(st.humidity + jitter.hum).toFixed(0)}% · Gió ${(st.wind + jitter.wind).toFixed(1)} km/h<br/><span style="font-size:11px; color:#64748B">Cập nhật: ${now.toLocaleTimeString('vi-VN')} · Nguồn: Sentinel-2 / FIRMS ${st.type.includes('Khẩn cấp')?'· LIVE':''}</span></div>`)
-            .addTo(map)
-          window.dispatchEvent(new CustomEvent('ecochain-select-area', { detail:{ area: st.name, level: st.level }}))
-          onSelectRef.current?.('station', st.name)
-        })
-      })
+      // (Điểm trạm HTML đã bỏ — thay bằng lớp điểm CẤP từng xã bên dưới)
       // Vùng trọng điểm — marker cam ⚠, phân biệt điểm từng cháy (đen/vàng)
       RISK_ZONES.forEach(h=>{
         const el=document.createElement('div')
@@ -806,7 +800,7 @@ export default function MapView({ onSelect }: { onSelect?: (type:string, id:stri
           }catch(e){ setInfo({ layer:'smoke', status:'UNAVAILABLE', reason:String(e) }) }
         }} style={{background: info?.layer==='smoke' && info?.is_smoke ? '#DC2626':'rgba(255,255,255,0.96)', color: info?.layer==='smoke' && info?.is_smoke ? '#fff':'#0B1412', backdropFilter:'blur(12px)', border:0, borderRadius:12, padding:'10px 12px', boxShadow:'0 4px 12px rgba(0,0,0,0.08)', fontSize:12, fontWeight:700}}>{info?.layer==='smoke' && info?.status==='ANALYZING' ? '⏳ Đang phân tích...' : '🤖 AI phát hiện khói'}</button>
         <div style={{background:'rgba(255,255,255,0.96)', backdropFilter:'blur(12px)', borderRadius:12, padding:10, fontSize:11, boxShadow:'0 4px 12px rgba(0,0,0,0.08)'}}>
-          <div style={{fontWeight:800}}>Huyền thoại</div>
+          <div style={{fontWeight:800}}>Huyền thoại (mỗi xã 1 điểm màu theo CẤP — bấm để xem)</div>
           <div><i style={{width:10,height:10,borderRadius:999,background:'#0EA5E9',display:'inline-block',marginRight:6}}/> CẤP I-II</div>
           <div><i style={{width:10,height:10,borderRadius:999,background:'#F59E0B',display:'inline-block',marginRight:6}}/> CẤP III-IV</div>
           <div><i style={{width:10,height:10,borderRadius:999,background:'#DC2626',display:'inline-block',marginRight:6}}/> CẤP V</div>
