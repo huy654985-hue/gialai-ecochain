@@ -107,6 +107,10 @@ describe('api client', () => {
     await expect(api.proposalDetail('missing')).rejects.toThrow('404')
   })
 
+  it('sendFeedback posts a bug report and returns its id', async () => {
+    mockFetch(true, { id: 7, status: 'OPEN' })
+    await expect(api.sendFeedback({ category: 'bug', message: 'Nút X không bấm được' })).resolves.toEqual({ id: 7, status: 'OPEN' })
+  })
   it('uploadProposalPhoto sends multipart and returns hash info', async () => {
     const { uploadProposalPhoto } = await import('./api')
     mockFetch(true, { photo_id: 1, is_duplicate: false, hash: 'abc' })

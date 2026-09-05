@@ -18,6 +18,7 @@ from app.models.twin import TwinState, Scenario, ScenarioScore, InvestmentPlan, 
 from app.models.fire import OfficialFireWarning, AIFirePrediction
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
+from app.models.feedback import Feedback
 
 __all__ = [
     "AdministrativeUnit",
@@ -47,4 +48,5 @@ __all__ = [
     "OfficialFireWarning","AIFirePrediction",
     "User",
     "RefreshToken",
+    "Feedback",
 ]
